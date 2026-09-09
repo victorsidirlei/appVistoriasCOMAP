@@ -1,1596 +1,550 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#12386b">
-<title>Vistorias — ar-condicionado</title>
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Vistorias">
-<style>
-  :root{
-    --azul:#12386b; --azul-2:#0d2b52; --azul-claro:#e7eef7;
-    --texto:#1c2430; --secundario:#5b6675; --suave:#8a94a3;
-    --borda:#dfe3ea; --fundo:#f4f5f7; --branco:#ffffff;
-    --ambar-bg:#fdf1dc; --ambar-tx:#8a5a06;
-    --verde-bg:#e4f4ea; --verde-tx:#1f6e42;
-    --perigo:#b03a3a;
-    --raio:12px;
-  }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0; padding:0;}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    background:var(--fundo); color:var(--texto);
-    line-height:1.45; padding-bottom:88px;
-  }
-  .appbar{
-    position:sticky; top:0; z-index:20;
-    background:var(--azul); color:#fff;
-    padding:calc(env(safe-area-inset-top) + 12px) 16px 12px;
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-  }
-  .appbar h1{font-size:17px; font-weight:600; margin:0; letter-spacing:.2px;}
-  .appbar .sub{font-size:11px; color:#a9c1e2; margin:2px 0 0;}
-  .pill{
-    display:inline-flex; align-items:center; gap:6px;
-    background:rgba(255,255,255,.14); color:#fff;
-    font-size:12px; font-weight:500; padding:5px 10px; border-radius:20px; white-space:nowrap;
-  }
-  .pill .dot{width:8px; height:8px; border-radius:50%; background:#f0b429;}
-  .pill.online .dot{background:#5fd08a;}
-  .container{max-width:640px; margin:0 auto; padding:16px;}
-  .aviso{
-    background:var(--azul-claro); color:var(--azul-2);
-    border-radius:var(--raio); padding:12px 14px; font-size:13px; margin-bottom:16px;
-    display:flex; gap:10px; align-items:flex-start;
-  }
-  .aviso svg{flex:none; margin-top:1px;}
-  .contador{font-size:13px; color:var(--secundario); margin:0 2px 10px; font-weight:500;}
-  .card{
-    background:var(--branco); border:1px solid var(--borda); border-radius:var(--raio);
-    padding:14px; margin-bottom:12px; cursor:pointer;
-  }
-  .card:active{background:#fafbfc;}
-  .card .top{display:flex; justify-content:space-between; align-items:flex-start; gap:10px;}
-  .card .nome{font-size:15px; font-weight:600; margin:0;}
-  .card .meta{font-size:12.5px; color:var(--secundario); margin:4px 0 0; display:flex; gap:14px; flex-wrap:wrap;}
-  .badge{font-size:11px; font-weight:600; padding:3px 9px; border-radius:12px; white-space:nowrap;}
-  .badge.pend{background:var(--ambar-bg); color:var(--ambar-tx);}
-  .badge.env{background:var(--verde-bg); color:var(--verde-tx);}
-  .card .fotos-mini{display:flex; gap:6px; margin-top:12px; flex-wrap:wrap;}
-  .card .fotos-mini img{width:52px; height:52px; object-fit:cover; border-radius:8px; border:1px solid var(--borda);}
-  .card .rodape-card{display:flex; align-items:center; justify-content:flex-end; gap:4px; margin-top:10px; color:var(--azul); font-size:12.5px; font-weight:500;}
-  .vazio{text-align:center; color:var(--suave); padding:48px 20px;}
-  .vazio svg{opacity:.5; margin-bottom:12px;}
-  .vazio p{margin:0; font-size:14px;}
-  .voltar{
-    background:none; border:none; color:var(--azul); font-size:15px; font-weight:500;
-    display:inline-flex; align-items:center; gap:6px; padding:0 0 14px; cursor:pointer;
-  }
-  .campo{margin-bottom:14px;}
-  .campo label{display:block; font-size:12.5px; color:var(--secundario); font-weight:600; margin-bottom:6px;}
-  .campo input,
-  .campo select{
-    width:100%; font-size:16px; color:var(--texto);
-    padding:11px 12px; border:1px solid var(--borda); border-radius:10px; background:var(--branco);
-    -webkit-appearance:none; appearance:none;
-  }
-  .campo select{
-    padding-right:38px;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235b6675' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:right 12px center;
-  }
-  .campo select:invalid{color:var(--suave);} /* placeholder acinzentado */
-  /* ---- Combobox com filtro (digite para filtrar, toque para escolher) ---- */
-  .combo{position:relative;}
-  .combo input{
-    padding-right:38px;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%235b6675' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat:no-repeat; background-position:right 12px center;
-  }
-  .combo-lista{
-    position:absolute; top:calc(100% + 4px); left:0; right:0; z-index:35;
-    background:var(--branco); border:1px solid var(--borda); border-radius:10px;
-    max-height:230px; overflow-y:auto; box-shadow:0 8px 24px rgba(0,0,0,.12);
-  }
-  .combo-op{padding:11px 13px; font-size:15px; border-bottom:1px solid var(--fundo); cursor:pointer;}
-  .combo-op:last-child{border-bottom:none;}
-  .combo-op:active{background:var(--azul-claro);}
-  .combo-vazio{padding:12px 13px; font-size:13.5px; color:var(--suave); font-style:italic;}
-  .combo-equip{margin:0 0 8px;}
-  .combo-equip input{
-    font-size:13.5px; padding:9px 32px 9px 36px;
-    border-radius:20px; background-color:var(--fundo);
-    background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%235b6675' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.83z'/%3E%3Cline x1='7' y1='7' x2='7.01' y2='7'/%3E%3C/svg%3E"),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%235b6675' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-    background-position:left 13px center, right 12px center;
-    background-repeat:no-repeat, no-repeat;
-    background-size:15px, 16px;
-  }
-  .combo-equip input:focus{background-color:var(--branco);}
-  .combo-equip input.preenchido{
-    background-color:var(--azul-claro); border-color:var(--azul);
-    color:var(--azul-2); font-weight:600;
-    background-image:
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%230d2b52' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.83z'/%3E%3Cline x1='7' y1='7' x2='7.01' y2='7'/%3E%3C/svg%3E"),
-      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230d2b52' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
-  }
-  .chip-equip{display:inline-block; background:var(--azul-claro); color:var(--azul-2);
-    font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; margin-left:6px;}
-  /* ---- Câmera embutida (lanterna + foco contínuo) ---- */
-  #cameraView{position:fixed; inset:0; z-index:75; background:#000;}
-  #cameraVideo{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
-  .cam-fechar{
-    position:absolute; top:calc(env(safe-area-inset-top) + 14px); right:14px;
-    width:42px; height:42px; border-radius:50%; border:none; cursor:pointer;
-    background:rgba(0,0,0,.45); color:#fff; display:flex; align-items:center; justify-content:center;
-  }
-  .cam-bar{
-    position:absolute; left:0; right:0; bottom:0;
-    padding:18px 30px calc(env(safe-area-inset-bottom) + 22px);
-    display:flex; align-items:center; justify-content:space-between;
-    background:linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0));
-  }
-  .cam-torch{
-    width:54px; height:54px; border-radius:50%; border:none; cursor:pointer;
-    background:rgba(255,255,255,.18); color:#fff;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .cam-torch.ligada{background:#f0b429; color:#1c2430;}
-  .cam-capturar{
-    width:76px; height:76px; border-radius:50%; cursor:pointer;
-    background:#fff; border:5px solid rgba(255,255,255,.4);
-  }
-  .cam-capturar:active{transform:scale(.94);}
-  .cam-espaco{width:54px;}
-  .campo input:focus,
-  .campo select:focus{outline:none; border-color:var(--azul); box-shadow:0 0 0 3px rgba(18,56,107,.12);}
-  .dupla{display:flex; gap:10px;}
-  .dupla .campo{flex:1;}
-  .secao-titulo{display:flex; justify-content:space-between; align-items:center; margin:20px 2px 12px;}
-  .secao-titulo h2{font-size:15px; font-weight:600; margin:0;}
-  .secao-titulo span{font-size:12.5px; color:var(--secundario);}
-  .foto-item{
-    background:var(--branco); border:1px solid var(--borda); border-radius:10px;
-    padding:10px; margin-bottom:10px; display:flex; gap:10px; align-items:flex-start;
-  }
-  .foto-item img{width:76px; height:76px; object-fit:cover; border-radius:8px; flex:none;}
-  .foto-item .legenda-wrap{flex:1; min-width:0;}
-  .foto-item .legenda-wrap label{font-size:11.5px; color:var(--secundario); display:block; margin-bottom:5px;}
-  .foto-item textarea{
-    width:100%; font-size:15px; font-family:inherit; color:var(--texto); line-height:1.45;
-    padding:9px 10px; border:1px solid var(--borda); border-radius:8px;
-    min-height:76px; resize:vertical; -webkit-appearance:none; display:block; overflow:hidden;
-  }
-  .foto-item textarea:focus{outline:none; border-color:var(--azul); box-shadow:0 0 0 3px rgba(18,56,107,.12);}
-  .foto-item .rem{
-    background:none; border:none; color:var(--perigo); font-size:12px; padding:8px 0 0; cursor:pointer;
-    display:inline-flex; align-items:center; gap:4px;
-  }
-  .add-foto{
-    width:100%; border:1.5px dashed var(--azul); background:var(--azul-claro); color:var(--azul);
-    border-radius:10px; padding:16px; font-size:14.5px; font-weight:600;
-    display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
-  }
-  .add-foto:active{transform:scale(.99);}
-  .review-head{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:16px;}
-  .review-head h2{font-size:19px; font-weight:600; margin:0;}
-  .review-sum{background:var(--branco); border:1px solid var(--borda); border-radius:var(--raio); overflow:hidden;}
-  .review-sum .linha{display:flex; padding:11px 14px; font-size:14px; border-bottom:1px solid var(--borda);}
-  .review-sum .linha:last-child{border-bottom:none;}
-  .review-sum .rot{width:120px; color:var(--secundario); font-weight:600; font-size:12.5px; flex:none;}
-  .rev-foto{
-    background:var(--branco); border:1px solid var(--borda); border-radius:10px;
-    padding:10px; margin-bottom:10px; display:flex; gap:10px; align-items:flex-start;
-  }
-  .rev-foto img{width:76px; height:76px; object-fit:cover; border-radius:8px; flex:none;}
-  .rev-foto .cap{font-size:14px; white-space:pre-wrap; word-break:break-word; min-width:0;}
-  .rev-foto .cap .n{font-size:11.5px; color:var(--secundario); display:block; margin-bottom:2px;}
-  .rev-foto .cap .vazia{color:var(--suave); font-style:italic;}
-  .nota-travada{
-    background:var(--verde-bg); color:var(--verde-tx); border-radius:10px;
-    padding:12px 14px; font-size:13px; margin-top:16px; display:flex; gap:10px; align-items:flex-start;
-  }
-  .nota-travada svg{flex:none; margin-top:1px;}
-  .barra-fixa{
-    position:fixed; left:0; right:0; bottom:0; z-index:20;
-    padding:12px 16px calc(env(safe-area-inset-bottom) + 12px);
-    background:linear-gradient(to top, var(--fundo) 72%, rgba(244,245,247,0));
-  }
-  .barra-fixa .interno{max-width:640px; margin:0 auto;}
-  .btn-primario{
-    width:100%; background:var(--azul); color:#fff; border:none;
-    border-radius:12px; padding:15px; font-size:16px; font-weight:600;
-    display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
-  }
-  .btn-primario:active{background:var(--azul-2);}
-  .btn-secundario{
-    width:100%; background:var(--branco); color:var(--azul); border:1.5px solid var(--azul);
-    border-radius:12px; padding:13px; font-size:15px; font-weight:600; margin-top:18px;
-    display:flex; align-items:center; justify-content:center; gap:8px; cursor:pointer;
-  }
-  .rodape-teste{text-align:center; margin:22px 0 8px;}
-  .rodape-teste button{background:none; border:none; color:var(--perigo); font-size:13px; font-weight:500; cursor:pointer;
-    display:inline-flex; align-items:center; gap:6px;}
-  .rodape-limpar{text-align:center; margin:24px 0 8px;}
-  .rodape-limpar button{background:none; border:none; color:var(--suave); font-size:12px; text-decoration:underline; cursor:pointer;}
-  .oculto{display:none !important;}
-  .invisivel{visibility:hidden !important;}
-  .toast{
-    position:fixed; left:50%; bottom:96px; transform:translateX(-50%) translateY(20px);
-    background:#222b38; color:#fff; font-size:13.5px; padding:11px 18px; border-radius:22px;
-    opacity:0; transition:opacity .2s, transform .2s; z-index:60; pointer-events:none; max-width:90%; text-align:center;
-  }
-  .toast.ver{opacity:1; transform:translateX(-50%) translateY(0);}
-  .modal-overlay{
-    position:fixed; inset:0; z-index:70; background:rgba(15,22,33,.5);
-    display:flex; align-items:center; justify-content:center; padding:24px;
-  }
-  .modal-card{
-    background:var(--branco); border-radius:16px; padding:22px; max-width:340px; width:100%;
-    box-shadow:0 12px 40px rgba(0,0,0,.25);
-  }
-  .modal-card h3{margin:0 0 8px; font-size:17px; font-weight:600;}
-  .modal-card p{margin:0 0 20px; font-size:14px; color:var(--secundario); line-height:1.5;}
-  .modal-acoes{display:flex; gap:10px;}
-  .modal-btn{flex:1; border-radius:10px; padding:12px; font-size:15px; font-weight:600; cursor:pointer; border:none;}
-  .modal-btn.cancelar{background:#eef0f3; color:var(--texto);}
-  .modal-btn.confirmar{background:var(--azul); color:#fff;}
-  .modal-btn.confirmar.perigo{background:var(--perigo);}
-</style>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <meta
+        name="theme-color"
+        content="#164477"
+    >
+
+    <meta
+        name="mobile-web-app-capable"
+        content="yes"
+    >
+
+    <title>Relatório Fotográfico</title>
+
+    <link rel="manifest" href="manifest.json">
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f6f9;
+            color: #1f2937;
+        }
+
+        header {
+            background: #164477;
+            color: white;
+            padding: 16px 20px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        header p {
+            margin: 4px 0 0;
+            font-size: 13px;
+            opacity: 0.85;
+        }
+
+        main {
+            width: 100%;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 24px 16px 100px;
+        }
+
+        .tela {
+            display: none;
+        }
+
+        .tela.ativa {
+            display: block;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 22px;
+        }
+
+        .subtitulo {
+            color: #6b7280;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #dbe1e8;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 14px;
+        }
+
+        .botao {
+            width: 100%;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 18px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .botao-principal {
+            background: #164477;
+            color: white;
+        }
+
+        .botao-secundario {
+            background: white;
+            color: #164477;
+            border: 1px solid #164477;
+        }
+
+        .botao-perigo {
+            background: #fff;
+            color: #b42318;
+            border: 1px solid #e5a5a0;
+        }
+
+        label {
+            display: block;
+            margin-top: 16px;
+            margin-bottom: 6px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #cfd6df;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .topo-tela {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .voltar {
+            border: none;
+            background: transparent;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .relatorio-titulo {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+
+        .relatorio-info {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .vazio {
+            text-align: center;
+            padding: 50px 20px;
+            color: #7b8794;
+        }
+
+        .registro {
+            border: 1px solid #dbe1e8;
+            border-radius: 12px;
+            background: white;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .registro-cabecalho {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .registro-numero {
+            font-weight: bold;
+        }
+
+        .tipo {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .tipo-concluida {
+            background: #e8f5e9;
+            color: #176b35;
+        }
+
+        .tipo-pendencia {
+            background: #fff4d6;
+            color: #8a5a00;
+        }
+
+        .tipo-problema {
+            background: #fdecec;
+            color: #a52222;
+        }
+
+        .registro-observacao {
+            white-space: pre-wrap;
+            line-height: 1.5;
+            color: #374151;
+        }
+
+        .botoes-final {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-top: 1px solid #dbe1e8;
+            padding: 10px 16px;
+        }
+
+        .botoes-final-interno {
+            max-width: 760px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 700px) {
+
+            .botoes-final {
+                position: static;
+                background: transparent;
+                border: none;
+                padding: 10px 0;
+            }
+
+            .botoes-final-interno {
+                max-width: none;
+            }
+
+        }
+
+    </style>
 </head>
+
 <body>
 
-<header class="appbar">
-  <div>
-    <h1>Vistorias</h1>
-    <p class="sub">Ar-condicionado</p>
-  </div>
-  <span class="pill" id="pill"><span class="dot"></span><span id="pillTxt">Offline</span></span>
+<header>
+    <h1>Relatório Fotográfico</h1>
+    <p>Vistorias</p>
 </header>
 
-<!-- ===== LISTA ===== -->
-<main class="container" id="listView">
-  <p class="contador" id="contador">Nenhuma vistoria salva</p>
-  <div id="lista"></div>
-  <div class="vazio oculto" id="vazio">
-    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg>
-    <p>Toque em “Nova vistoria” para começar.</p>
-  </div>
-  <div class="rodape-limpar" id="rodapeLimpar"></div>
-</main>
+<main>
 
-<!-- ===== REVISÃO ===== -->
-<main class="container oculto" id="reviewView">
-  <button class="voltar" id="btnVoltarReview">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-    Vistorias
-  </button>
-  <div class="review-head">
-    <h2 id="revUnidade"></h2>
-    <span class="badge" id="revBadge"></span>
-  </div>
-  <div class="review-sum" id="revSum"></div>
-  <div class="secao-titulo"><h2>Fotos</h2><span id="revFotoCount"></span></div>
-  <div id="revFotos"></div>
-  <button class="btn-secundario" id="btnEditar">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-    Editar vistoria
-  </button>
-  <div class="nota-travada oculto" id="revLock">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    <div>Relatório enviado. Para corrigir, será preciso gerar uma retificação (próxima etapa do projeto).</div>
-  </div>
-  <div class="rodape-teste">
-    <button id="btnApagarRev">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
-      Apagar vistoria
-    </button>
-  </div>
-</main>
+    <!-- ================================================== -->
+    <!-- TELA INICIAL -->
+    <!-- ================================================== -->
 
-<!-- ===== FORMULÁRIO ===== -->
-<main class="container oculto" id="formView">
-  <button class="voltar" id="btnVoltar">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-    <span id="voltarTxt">Vistorias</span>
-  </button>
-  <div class="campo">
-    <label for="unidade">Unidade</label>
-    <div class="combo">
-      <input id="unidade" type="text" placeholder="Toque e digite para filtrar…" autocomplete="off">
-      <div class="combo-lista oculto"></div>
-    </div>
-  </div>
-  <div class="dupla">
-    <div class="campo">
-      <label for="tecnico">Técnico</label>
-      <div class="combo">
-        <input id="tecnico" type="text" placeholder="Digite para filtrar…" autocomplete="off">
-        <div class="combo-lista oculto"></div>
-      </div>
-    </div>
-    <div class="campo" style="max-width:150px;">
-      <label for="data">Data</label>
-      <input id="data" type="date">
-    </div>
-  </div>
-  <div class="campo">
-    <label for="contrato">Contrato</label>
-    <div class="combo">
-      <input id="contrato" type="text" placeholder="Toque e digite para filtrar…" autocomplete="off">
-      <div class="combo-lista oculto"></div>
-    </div>
-  </div>
-  <div class="secao-titulo">
-    <h2>Fotos</h2>
-    <span><span id="autosaveInd" style="color:var(--verde-tx); margin-right:10px; font-size:12px;"></span><span id="fotoContador">0 foto(s)</span></span>
-  </div>
-  <div id="fotosForm"></div>
-  <button class="add-foto" id="btnAddFoto">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><path d="M12 10v6M9 13h6"/></svg>
-    Tirar foto
-  </button>
-  <input type="file" id="inputFoto" accept="image/*" capture="environment" class="oculto">
-</main>
+    <section id="tela-inicio" class="tela ativa">
 
-<!-- Barras fixas -->
-<div class="barra-fixa" id="barraLista"><div class="interno">
-  <button class="btn-primario" id="btnNova">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-    Nova vistoria
-  </button>
-</div></div>
-<div class="barra-fixa oculto" id="barraReview"><div class="interno">
-  <button class="btn-primario" id="btnEnviar">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-    Enviar relatório
-  </button>
-</div></div>
-<div class="barra-fixa oculto" id="barraForm"><div class="interno">
-  <button class="btn-primario" id="btnSalvar">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
-    Salvar vistoria
-  </button>
-</div></div>
+        <div class="card">
 
-<!-- Câmera embutida (lanterna contínua + foco contínuo) -->
-<div class="oculto" id="cameraView">
-  <video id="cameraVideo" autoplay playsinline muted></video>
-  <button class="cam-fechar" id="btnFecharCam" aria-label="Fechar câmera">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-  </button>
-  <div class="cam-bar">
-    <button class="cam-torch invisivel" id="btnTorch" aria-label="Lanterna">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-    </button>
-    <button class="cam-capturar" id="btnCapturar" aria-label="Capturar"></button>
-    <span class="cam-espaco"></span>
-  </div>
-</div>
+            <h2>Novo relatório</h2>
 
-<!-- Visualizador de foto ampliada (toque para fechar) -->
-<div class="oculto" id="visualizadorFoto"
-     style="position:fixed; inset:0; z-index:80; background:rgba(10,14,20,.92);
-            display:flex; align-items:center; justify-content:center; cursor:zoom-out;">
-  <img id="visualizadorImg" alt=""
-       style="max-width:96vw; max-height:92vh; object-fit:contain; border-radius:8px;">
-</div>
+            <p class="subtitulo">
+                Registre atividades, pendências e problemas
+                com fotos e observações.
+            </p>
 
-<div class="toast" id="toast"></div>
+            <button
+                id="btn-novo-relatorio"
+                class="botao botao-principal"
+            >
+                + Novo relatório
+            </button>
 
-<div class="modal-overlay oculto" id="modal">
-  <div class="modal-card">
-    <h3 id="modalTitulo"></h3>
-    <p id="modalMsg"></p>
-    <div class="modal-acoes">
-      <button class="modal-btn cancelar" id="modalCancelar">Cancelar</button>
-      <button class="modal-btn confirmar" id="modalConfirmar">Confirmar</button>
-    </div>
-  </div>
-</div>
-
-<script>
-/* ============================================================
-   ⬇⬇⬇  LISTA DE EDIFICAÇÕES  ⬇⬇⬇
-   Edite aqui: uma edificação por linha, entre aspas, com vírgula.
-   É a única coisa que você precisa mexer para trocar as unidades.
-   ============================================================ */
-const EDIFICACOES = [
-  "Abaeté - Fórum",
-  "Abre Campo - Fórum",
-  "Açucena - Fórum",
-  "Águas Formosas - Fórum",
-  "Aimorés - Fórum",
-  "Aiuruoca - Fórum",
-  "Além Paraíba - Fórum",
-  "Alfenas - Fórum",
-  "Almenara - Fórum",
-  "Alpinópolis - Fórum",
-  "Alto Rio Doce - Fórum",
-  "Alvinópolis - Fórum",
-  "Andradas - Fórum",
-  "Andrelândia - Fórum",
-  "Araçuaí - Fórum",
-  "Araguari - Fórum",
-  "Araxá - Fórum",
-  "Arcos - Fórum",
-  "Areado - Fórum",
-  "Arinos - Fórum",
-  "Baependi - Fórum",
-  "Bambuí - Fórum",
-  "Barão De Cocais - Fórum",
-  "Barbacena - Fórum",
-  "Barroso - Fórum",
-  "Belo Horizonte - ANEXO I (Goiás)",
-  "Belo Horizonte - Cartórios Av Afonso Pena",
-  "Belo Horizonte - Cartórios Pç Milton Campos",
-  "Belo Horizonte - Casa PAIPJ",
-  "Belo Horizonte - CEAC",
-  "Belo Horizonte - CEJUSC (Gutierrez)",
-  "Belo Horizonte - CEOP",
-  "Belo Horizonte - CIA",
-  "Belo Horizonte - COPAT (Camargos)",
-  "Belo Horizonte - Corregedoria",
-  "Belo Horizonte - Curitiba",
-  "Belo Horizonte - Depósito (Carlos Prates)",
-  "Belo Horizonte - DIRFOR",
-  "Belo Horizonte - DIRGED",
-  "Belo Horizonte - Ed. Liberdade",
-  "Belo Horizonte - Ed. Sede",
-  "Belo Horizonte - EJEF",
-  "Belo Horizonte - Fórum Barreiro",
-  "Belo Horizonte - Fórum Digital Venda Nova",
-  "Belo Horizonte - JESP Cível (Francisco Sales)",
-  "Belo Horizonte - JESP Consumo (Padre Rolim)",
-  "Belo Horizonte - JESP Criminal",
-  "Belo Horizonte - MEJUD",
-  "Belo Horizonte - Mirafiori (17,18,19 E 20º)",
-  "Belo Horizonte - Orquestra Jovem (Rainha da Sucata)",
-  "Belo Horizonte - Prado",
-  "Belo Horizonte - Rua Manaus",
-  "Belo Horizonte - Varas Cíveis (Raja)",
-  "Belo Horizonte - Varas Criminais",
-  "Belo Horizonte - VECCA",
-  "Belo Vale - Fórum",
-  "Betim - Fórum",
-  "Betim - JESP",
-  "Bicas - Fórum",
-  "Boa Esperança - Fórum",
-  "Bocaiúva - Fórum",
-  "Bom Despacho - Fórum",
-  "Bom Sucesso - Fórum",
-  "Bonfim - Fórum",
-  "Bonfinópolis De Minas - Fórum",
-  "Borda Da Mata - Fórum",
-  "Botelhos - Fórum",
-  "Brasília De Minas - Fórum",
-  "Brazópolis - Fórum",
-  "Brumadinho - Fórum",
-  "Bueno Brandão - Fórum",
-  "Buenópolis - Fórum",
-  "Buritis - Fórum",
-  "Cabo Verde - Fórum",
-  "Cachoeira De Minas - Fórum",
-  "Caeté - Fórum",
-  "Caldas - Fórum",
-  "Camanducaia - Fórum",
-  "Cambuí - Fórum",
-  "Cambuquira - Fórum",
-  "Campanha - Fórum",
-  "Campestre - Fórum",
-  "Campina Verde - Fórum",
-  "Campo Belo - Fórum",
-  "Campos Altos - Fórum",
-  "Campos Gerais - Fórum",
-  "Canápolis - Fórum",
-  "Candeias - Fórum",
-  "Capelinha - Fórum",
-  "Capinópolis - Fórum",
-  "Carandaí - Fórum",
-  "Carangola - Fórum",
-  "Caratinga - Fórum",
-  "Carlos Chagas - Fórum",
-  "Carmo Da Mata - Fórum",
-  "Carmo De Minas - Fórum",
-  "Carmo Do Cajuru - Fórum",
-  "Carmo Do Paranaíba - Fórum",
-  "Carmo Do Rio Claro - Fórum",
-  "Carmópolis De Minas - Fórum",
-  "Cássia - Fórum",
-  "Cataguases - Fórum",
-  "Caxambú - Fórum",
-  "Cláudio - Fórum",
-  "Coluna - CEJUSC Digital",
-  "Conceição Das Alagoas - Fórum",
-  "Conceição Do Mato Dentro - Fórum",
-  "Conceição Do Rio Verde - Fórum",
-  "Congonhas - Fórum",
-  "Conquista - Fórum",
-  "Conselheiro Lafaiete - Fórum",
-  "Conselheiro Pena - Fórum",
-  "Contagem - COARQ/CINCÃO",
-  "Contagem - Fórum",
-  "Coração De Jesus - Fórum",
-  "Corinto - Fórum",
-  "Coromandel - Fórum",
-  "Coronel Fabriciano - Fórum",
-  "Cristina - Fórum",
-  "Cruzília - Fórum",
-  "Curvelo - Fórum",
-  "Diamantina - Fórum",
-  "Divino - Fórum",
-  "Divinópolis - Fórum",
-  "Dores Do Indaiá - Fórum",
-  "Eloi Mendes - Fórum",
-  "Entre Rios De Minas - Fórum",
-  "Ervália - Fórum",
-  "Esmeraldas - Fórum",
-  "Espera Feliz - Fórum",
-  "Espinosa - Fórum",
-  "Estrela Do Sul - Fórum",
-  "Eugenópolis - Fórum",
-  "Extrema - Fórum",
-  "Ferros - Fórum",
-  "Formiga - Fórum",
-  "Francisco Sá - Fórum",
-  "Fronteira - CEJUSC Digital",
-  "Frutal - Fórum",
-  "Galiléia - Fórum",
-  "Governador Valadares - Fórum",
-  "Governador Valadares - JESP",
-  "Grão Mogol - Fórum",
-  "Guanhães - Fórum",
-  "Guapé - Fórum",
-  "Guaranésia - Fórum",
-  "Guarani - Fórum",
-  "Guaxupé - Fórum",
-  "Ibiá - Fórum",
-  "Ibiraci - Fórum",
-  "Ibirité - Fórum",
-  "Ibirité - JESP",
-  "Igarape - Fórum",
-  "Iguatama - Fórum",
-  "Inhapim - Fórum",
-  "Ipanema - Fórum",
-  "Ipatinga - Fórum",
-  "Ipatinga - JESP",
-  "Itabira - Fórum",
-  "Itabirito - Fórum",
-  "Itaguara - Fórum",
-  "Itajubá - Fórum Cível",
-  "Itajubá - Fórum Criminal",
-  "Itamarandiba - Fórum",
-  "Itambacuri - Fórum",
-  "Itamoji - Fórum",
-  "Itamonte - Fórum",
-  "Itanhandú - Fórum",
-  "Itanhomi - Fórum",
-  "Itapagipe - Fórum",
-  "Itapecerica - Fórum",
-  "Itaúna - Fórum",
-  "Ituiutaba - Fórum",
-  "Itumirim - Fórum",
-  "Iturama - Fórum",
-  "Jaboticatubas - Fórum",
-  "Jacinto - Fórum",
-  "Jacuí - Fórum",
-  "Jacutinga - Fórum",
-  "Jaíba - Fórum",
-  "Janaúba - Fórum",
-  "Januária - Fórum",
-  "Jequeri - Fórum",
-  "Jequitinhonha - Fórum",
-  "João Monlevade - Fórum",
-  "João Pinheiro - Fórum",
-  "Juatuba - Fórum",
-  "Juiz De Fora - Fórum",
-  "Juiz De Fora - JESP",
-  "Juiz De Fora - Vara De Fazenda",
-  "Lagoa Da Prata - Fórum",
-  "Lagoa Grande - CEJUSC Digital",
-  "Lagoa Santa - Fórum",
-  "Lajinha - Fórum",
-  "Lambari - Fórum",
-  "Lavras - Fórum",
-  "Leopoldina - Fórum",
-  "Lima Duarte - Fórum",
-  "Luz - Fórum",
-  "Machado - Fórum",
-  "Malacacheta - Fórum",
-  "Manga - Fórum",
-  "Manhuaçu - Fórum",
-  "Manhumirim - Fórum",
-  "Mantena - Fórum",
-  "Mar De Espanha - Fórum",
-  "Mariana - Fórum",
-  "Martinho Campos - Fórum",
-  "Mateus Leme - Fórum",
-  "Matias Barbosa - Fórum",
-  "Matozinhos - Fórum",
-  "Medina - Fórum",
-  "Merces - Fórum",
-  "Mesquita - Fórum",
-  "Minas Novas - Fórum",
-  "Miradouro - Fórum",
-  "Miraí - Fórum",
-  "Montalvânia - Fórum",
-  "Monte Alegre De Minas - Fórum",
-  "Monte Azul - Fórum",
-  "Monte Belo - Fórum",
-  "Monte Carmelo - Fórum",
-  "Monte Santo De Minas - Fórum",
-  "Monte Sião - Fórum",
-  "Montes Claros - Fórum",
-  "Montes Claros - JESP",
-  "Morada Nova De Minas - Fórum",
-  "Muriaé - Fórum",
-  "Mutum - Fórum",
-  "Muzambinho - Fórum",
-  "Nanuque - Fórum",
-  "Natércia - Fórum",
-  "Nepomuceno - Fórum",
-  "Nova Era - Fórum",
-  "Nova Lima - Fórum",
-  "Nova Ponte - Fórum",
-  "Nova Resende - Fórum",
-  "Nova Serrana - Fórum",
-  "Novo Cruzeiro - Fórum",
-  "Oliveira - Fórum",
-  "Ouro Branco - Fórum",
-  "Ouro Fino - Fórum",
-  "Ouro Preto - Fórum",
-  "Padre Paraíso - CEJUSC Digital",
-  "Palma - Fórum",
-  "Papagaios - CEJUSC Digital",
-  "Pará De Minas - Fórum",
-  "Pará De Minas - JESP",
-  "Paracatu - Fórum",
-  "Paraguaçu - Fórum",
-  "Paraisópolis - Fórum",
-  "Paraopeba - Fórum",
-  "Passa Quatro - Fórum",
-  "Passa Tempo - Fórum",
-  "Passos - Fórum",
-  "Patos De Minas - Fórum",
-  "Patrocínio - Fórum",
-  "Peçanha - Fórum",
-  "Pedra Azul - Fórum",
-  "Pedralva - Fórum",
-  "Pedro Leopoldo - Fórum",
-  "Perdizes - Fórum",
-  "Perdões - Fórum",
-  "Piranga - Fórum",
-  "Pirapetinga - Fórum",
-  "Pirapora - Fórum",
-  "Pitangui - Fórum",
-  "Piumhi - Fórum",
-  "Poço Fundo - Fórum",
-  "Poços De Caldas - Fórum",
-  "Pompéu - Fórum",
-  "Ponte Nova - Fórum",
-  "Porteirinha - Fórum",
-  "Pouso Alegre - Fórum",
-  "Prados - Fórum",
-  "Prata - Fórum",
-  "Pratápolis - Fórum",
-  "Presidente Olegário - Fórum",
-  "Raul Soares - Fórum",
-  "Resende Costa - Fórum",
-  "Resplendor - Fórum",
-  "Ribeirão Das Neves - Fórum",
-  "Rio Casca - Fórum",
-  "Rio Novo - Fórum",
-  "Rio Paranaíba - Fórum",
-  "Rio Pardo De Minas - Fórum",
-  "Rio Piracicaba - Fórum",
-  "Rio Pomba - Fórum",
-  "Rio Preto - Fórum",
-  "Rio Vermelho - Fórum",
-  "Sabará - Fórum",
-  "Sabinópolis - Fórum",
-  "Sacramento - Fórum",
-  "Salinas - Fórum",
-  "Santa Bárbara - Fórum",
-  "Santa Luzia - Fórum",
-  "Santa Maria Do Suaçuí - Fórum",
-  "Santa Rita De Caldas - Fórum",
-  "Santa Rita Do Sapucaí - Fórum",
-  "Santa Vitória - Fórum",
-  "Santo Antônio Do Monte - Fórum",
-  "Santos Dumont - Fórum",
-  "São Domingos Do Prata - Fórum",
-  "São Francisco - Fórum",
-  "São Gonçalo Do Sapucaí - Fórum",
-  "São Gotardo - Fórum",
-  "São João Da Ponte - Fórum",
-  "São João Del Rei - Fórum",
-  "São João Do Paraíso - Fórum",
-  "São João Evangelista - Fórum",
-  "São João Nepomuceno - Fórum",
-  "São Lourenço - Fórum",
-  "São Romão - Fórum",
-  "São Roque De Minas - Fórum",
-  "São Sebastião Do Paraíso - Fórum",
-  "Senador Firmino - Fórum",
-  "Serro - Fórum",
-  "Sete Lagoas - Fórum",
-  "Sete Lagoas - JESP",
-  "Silvianópolis - Fórum",
-  "Taiobeiras - Fórum",
-  "Tarumirim - Fórum",
-  "Teixeiras - Fórum",
-  "Teófilo Otoni - Fórum",
-  "Timóteo - Fórum",
-  "Tiros - Fórum",
-  "Tombos - Fórum",
-  "Três Corações - Fórum",
-  "Três Marias - Fórum",
-  "Três Pontas - Fórum",
-  "Tupaciguara - Fórum",
-  "Turmalina - Fórum",
-  "Ubá - Fórum",
-  "Uberaba - Fórum",
-  "Uberlândia - Fórum",
-  "Unaí - Fórum",
-  "Varginha - Fórum",
-  "Várzea Da Palma - Fórum",
-  "Vazante - Fórum",
-  "Vespasiano - Fórum",
-  "Vespasiano - JESP",
-  "Viçosa - Fórum",
-  "Viginópolis - Fórum",
-  "Visconde Do Rio Branco - Fórum",
-  "Outros"
-];
-
-const TECNICOS = [
-  'Christian Rodrigues',
-  'Flávio Gerson',
-  'Gustavo Coimbra',
-  'Henrique Pinheiro',
-  'Paulo Rogério',
-  'Schneider Nascimento',
-];
-
-const CONTRATOS = [
-  '067/2025 - DW REFRIGERAÇÕES LTDA',
-  '068/2025 - DW REFRIGERAÇÕES LTDA',
-  '069/2025 - DW REFRIGERAÇÕES LTDA',
-  '212/2025 - ACOMAR REFORMA E REFRIGERAÇÃO LTDA',
-  '213/2025 - APOLO REFRIGERAÇÃO LTDA',
-  '316/2025 - APOLO REFRIGERAÇÃO LTDA',
-  '336/2025 - MG AR CONDICIONADO LTDA',
-  '377/2025 - LIVRE INOVAÇÕES LTDA',
-  '378/2025 - LIVRE INOVAÇÕES LTDA',
-  '379/2025 - COLD CLIMATE MANUTENÇÃO LTDA',
-  '129/2025 - ELETROCONTROLE ENGENHARIA COMÉRCIO E REPRESENTAÇÃO LTDA'
-];
-/* ============================================================ */
-
-/* ============================================================
-   CONFIG DO FIREBASE — cole aqui os dados do SEU projeto.
-   No console: ⚙ Configurações do projeto → Seus apps →
-   escolha o app Web → "Configuração do SDK" → copie os valores.
-   Copie EXATAMENTE (o storageBucket varia: pode terminar em
-   .appspot.com ou .firebasestorage.app).
-   ============================================================ */
-const firebaseConfig = {
-  apiKey: "AIzaSyAAChkasEnw4fnwv4AsmZdIyIkFhZpHH2w",
-  authDomain: "app-vistorias-2026.firebaseapp.com",
-  projectId: "app-vistorias-2026",
-  storageBucket: "app-vistorias-2026.firebasestorage.app",
-  messagingSenderId: "298738775826",
-  appId: "1:298738775826:web:19dbb4096a1f8d0b2f25cb"
-};
-
-const FB_VERSAO = '12.15.0';
-/* ============================================================ */
-
-/* ===== BANCO LOCAL (IndexedDB) ===== */
-const DB_NOME='vistoriasDB', STORE='vistorias', STORE_CFG='config';
-function abrirDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NOME,2);
-  r.onupgradeneeded=(e)=>{const db=e.target.result;
-    if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE,{keyPath:'id',autoIncrement:true});
-    if(!db.objectStoreNames.contains(STORE_CFG)) db.createObjectStore(STORE_CFG);};
-  r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);});}
-async function salvarConfigLocal(chave,valor){const db=await abrirDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE_CFG,'readwrite');tx.objectStore(STORE_CFG).put(valor,chave);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
-async function obterConfigLocal(chave){const db=await abrirDB();return new Promise((res,rej)=>{const rq=db.transaction(STORE_CFG,'readonly').objectStore(STORE_CFG).get(chave);rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>rej(rq.error);});}
-async function criarVistoria(reg){const db=await abrirDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');const rq=tx.objectStore(STORE).add(reg);rq.onsuccess=()=>res(rq.result);tx.onerror=()=>rej(tx.error);});}
-async function atualizarVistoria(reg){const db=await abrirDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(reg);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
-async function obterVistoria(id){const db=await abrirDB();return new Promise((res,rej)=>{const rq=db.transaction(STORE,'readonly').objectStore(STORE).get(id);rq.onsuccess=()=>res(rq.result);rq.onerror=()=>rej(rq.error);});}
-async function listarVistorias(){const db=await abrirDB();return new Promise((res,rej)=>{const rq=db.transaction(STORE,'readonly').objectStore(STORE).getAll();rq.onsuccess=()=>res(rq.result||[]);rq.onerror=()=>rej(rq.error);});}
-async function apagarVistoria(id){const db=await abrirDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(id);tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
-async function apagarTudo(){const db=await abrirDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).clear();tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error);});}
-
-/* ===== Utilitários ===== */
-const el=(id)=>document.getElementById(id);
-function escaparHtml(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function autosize(ta){ta.style.height='auto'; ta.style.height=(ta.scrollHeight+2)+'px';}
-
-/* ===== COMPRESSÃO DA FOTO (reduz tamanho + remove GPS) ===== */
-async function comprimirFoto(arquivo, MAX=1280, qualidade=0.8){
-  try{
-    let bitmap;
-    if(window.createImageBitmap){ bitmap=await createImageBitmap(arquivo,{imageOrientation:'from-image'}); }
-    else { bitmap=await new Promise((res,rej)=>{const img=new Image();img.onload=()=>res(img);img.onerror=rej;img.src=URL.createObjectURL(arquivo);}); }
-    let {width,height}=bitmap;
-    if(width>MAX||height>MAX){const r=Math.min(MAX/width,MAX/height);width=Math.round(width*r);height=Math.round(height*r);}
-    const c=document.createElement('canvas');c.width=width;c.height=height;
-    c.getContext('2d').drawImage(bitmap,0,0,width,height);
-    return await new Promise((res)=>c.toBlob(res,'image/jpeg',qualidade));
-  }catch(e){return arquivo;}
-}
-
-// Pega a localização atual pelo GPS do aparelho (ou null se indisponível/negado).
-function obterLocalizacao(){
-  return new Promise((resolve)=>{
-    if(!navigator.geolocation) return resolve(null);
-    navigator.geolocation.getCurrentPosition(
-      p=>resolve({lat:p.coords.latitude, lng:p.coords.longitude, acc:p.coords.accuracy}),
-      ()=>resolve(null),
-      {enableHighAccuracy:true, timeout:8000, maximumAge:30000}
-    );
-  });
-}
-function formatarDataHora(d){
-  const p=n=>String(n).padStart(2,'0');
-  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
-}
-
-// Redimensiona, CARIMBA local+hora na imagem e devolve o blob JPEG.
-async function processarFotoComCarimbo(arquivo, linhas, MAX=1280, qualidade=0.8){
-  try{
-    let bitmap;
-    if(window.createImageBitmap){ bitmap=await createImageBitmap(arquivo,{imageOrientation:'from-image'}); }
-    else { bitmap=await new Promise((res,rej)=>{const img=new Image();img.onload=()=>res(img);img.onerror=rej;img.src=URL.createObjectURL(arquivo);}); }
-    let {width,height}=bitmap;
-    if(width>MAX||height>MAX){const r=Math.min(MAX/width,MAX/height);width=Math.round(width*r);height=Math.round(height*r);}
-    const c=document.createElement('canvas');c.width=width;c.height=height;
-    const ctx=c.getContext('2d');
-    ctx.drawImage(bitmap,0,0,width,height);
-    // faixa escura com o carimbo, no rodapé da foto
-    const fonte=Math.max(13, Math.round(width*0.032));
-    const pad=Math.round(fonte*0.55);
-    const alturaLinha=Math.round(fonte*1.3);
-    const alturaCaixa=alturaLinha*linhas.length + pad*2;
-    ctx.fillStyle='rgba(0,0,0,0.55)';
-    ctx.fillRect(0, height-alturaCaixa, width, alturaCaixa);
-    ctx.fillStyle='#ffffff'; ctx.textBaseline='top';
-    ctx.font=fonte+'px Arial, sans-serif';
-    linhas.forEach((t,i)=>ctx.fillText(t, pad, height-alturaCaixa+pad+i*alturaLinha));
-    return await new Promise((res)=>c.toBlob(res,'image/jpeg',qualidade));
-  }catch(e){ return arquivo; }
-}
-
-/* ===== CONFIRMAÇÃO PRÓPRIA (integrada ao botão voltar) =====
-   Abrir a janelinha empilha uma entrada no histórico; o voltar
-   físico do celular a fecha como "Cancelar". Os botões dela também
-   fecham via histórico, para a pilha nunca sair de sincronia. */
-let _modalResolve=null, _modalValor=false;
-function confirmar({titulo,mensagem,textoConfirmar='Confirmar',perigo=false}){
-  return new Promise((resolve)=>{
-    el('modalTitulo').textContent=titulo;
-    el('modalMsg').textContent=mensagem;
-    const bc=el('modalConfirmar');
-    bc.textContent=textoConfirmar; bc.classList.toggle('perigo',perigo);
-    el('modal').classList.remove('oculto');
-    navPilha.push('modal'); history.pushState({tela:'modal'},'');
-    _modalResolve=(v)=>{
-      el('modal').classList.add('oculto');
-      bc.onclick=null; el('modalCancelar').onclick=null; el('modal').onclick=null;
-      _modalResolve=null; resolve(v);
-    };
-    bc.onclick=()=>{ _modalValor=true;  history.back(); };
-    el('modalCancelar').onclick=()=>{ _modalValor=false; history.back(); };
-    el('modal').onclick=(e)=>{ if(e.target===el('modal')){ _modalValor=false; history.back(); } };
-  });
-}
-
-/* ===== ESTADO / NAVEGAÇÃO ===== */
-let rascunhoFotos=[]; let vistoriaAtualId=null;
-
-/* ===== CATÁLOGO DE EQUIPAMENTOS (unidade → códigos) =====
-   Publicado pelo gestor via Apps Script, baixado quando o app abre
-   com internet e guardado offline no aparelho. */
-let CATALOGO={};
-const OPCAO_SEM_ID='Sem identificação';
-async function atualizarCatalogo(){
-  try{
-    const { db, fs } = await initFirebase();
-    const snap = await fs.getDoc(fs.doc(db,'catalogo','equipamentos'));
-    if(snap.exists()){
-      const d=snap.data();
-      CATALOGO=JSON.parse(d.json||'{}');
-      await salvarConfigLocal('catalogo',{json:d.json||'{}',atualizadoEm:d.atualizadoEm||''});
-    }
-  }catch(e){ /* silencioso: segue com o cache local */ }
-}
-function opcoesEquip(){
-  const u=(el('unidade').value||'').trim();
-  return [OPCAO_SEM_ID].concat((CATALOGO[u]||[]));
-}
-
-/* ===== COMBO REUTILIZÁVEL (para campos dinâmicos, ex.: equipamento da foto)
-   Mesmo comportamento dos campos principais: digitar filtra, tocar
-   escolhe, rolar rola, texto solto é descartado. Campo pode ficar
-   vazio (opcional). A lista é lida NA HORA de abrir (getLista), então
-   sempre reflete a unidade selecionada no momento. */
-function montarCombo(input, painel, getLista, aoEscolher){
-  let valorValido='';
-  painel.addEventListener('pointerdown', function(ev){ ev.preventDefault(); });
-  function renderOps(filtro){
-    const f=normalizarBusca(filtro);
-    const ops=getLista().filter(n=>normalizarBusca(n).includes(f));
-    painel.innerHTML=ops.length
-      ? ops.map(n=>`<div class="combo-op">${escaparHtml(n)}</div>`).join('')
-      : '<div class="combo-vazio">Nenhuma opção encontrada</div>';
-    painel.querySelectorAll('.combo-op').forEach(function(op,i){
-      op.addEventListener('click',function(){ escolher(ops[i]); });
-    });
-  }
-  function abrir(){ renderOps(input.value===valorValido?'':input.value); painel.classList.remove('oculto'); }
-  function fechar(){ painel.classList.add('oculto'); }
-  function escolher(v){ valorValido=v; input.value=v; fechar(); aoEscolher(v); }
-  input.addEventListener('focus',abrir);
-  input.addEventListener('input',function(){ renderOps(input.value); painel.classList.remove('oculto'); });
-  input.addEventListener('blur',function(){
-    setTimeout(function(){
-      const m=getLista().find(n=>normalizarBusca(n)===normalizarBusca(input.value));
-      if(m){ if(m!==valorValido){ valorValido=m; input.value=m; aoEscolher(m); } else input.value=m; }
-      else if(!input.value.trim()){ if(valorValido!==''){ valorValido=''; aoEscolher(''); } }
-      else { input.value=valorValido; }
-      fechar();
-    },150);
-  });
-  return { definir:function(v){ valorValido=v||''; input.value=v||''; } };
-}
-function esconderTudo(){['listView','reviewView','formView','barraLista','barraReview','barraForm'].forEach(v=>el(v).classList.add('oculto'));}
-function irLista(){esconderTudo();el('listView').classList.remove('oculto');el('barraLista').classList.remove('oculto');window.scrollTo(0,0);}
-function irForm(){esconderTudo();el('formView').classList.remove('oculto');el('barraForm').classList.remove('oculto');window.scrollTo(0,0);}
-function toast(m){const t=el('toast');t.textContent=m;t.classList.add('ver');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('ver'),2400);}
-function formatarData(iso){if(!iso)return '—';const [a,m,d]=iso.split('-');return `${d}/${m}/${a}`;}
-
-/* ===== PILHA DE NAVEGAÇÃO (botão voltar do celular) =====
-   Cada tela "para dentro" (revisão, formulário, foto ampliada,
-   confirmação) empilha uma entrada no histórico do navegador.
-   O voltar físico desempilha e mostra a tela anterior DENTRO do
-   app; só sai do app quando já está na lista inicial. */
-let navPilha=['lista'];
-let _navIgnorar=false;
-
-function navPush(tela){ navPilha.push(tela); history.pushState({tela},''); }
-
-function mostrarTela(t){
-  if(t==='form'){ irForm(); }
-  else if(t==='review' && vistoriaAtualId!=null){ abrirReview(vistoriaAtualId); }
-  else { irLista(); }
-}
-
-// Volta direto para a lista, recuando o histórico o quanto for preciso
-// (usado após Enviar/Apagar, quando as telas intermediárias deixam de existir).
-function navIrParaLista(){
-  const passos=navPilha.length-1;
-  navPilha=['lista'];
-  if(passos>0){ _navIgnorar=true; history.go(-passos); }
-  irLista();
-}
-
-window.addEventListener('popstate', function(){
-  if(_navIgnorar){ _navIgnorar=false; return; }
-  const anterior=navPilha.pop()||'lista';
-  if(anterior==='camera'){ fecharCamera(); return; }                 // fecha a câmera, fica na mesma tela
-  if(anterior==='foto'){ fecharVisualizador(); return; }              // fecha a ampliação, fica na mesma tela
-  if(anterior==='modal'){ if(_modalResolve) _modalResolve(_modalValor); return; }  // fecha a confirmação
-  mostrarTela(navPilha[navPilha.length-1]||'lista');
-});
-
-/* ===== Combobox com filtro (unidade, técnico, contrato) =====
-   O técnico pode digitar para FILTRAR a lista, mas só valores da
-   lista contam: texto solto é descartado ao sair do campo (volta ao
-   último valor válido). Isso preserva o casamento exato dos nomes
-   com as abas Tecnicos/Contratos do backend. O filtro ignora
-   acentos e maiúsculas ("forum" encontra "Fórum"). */
-const _combos={};
-function normalizarBusca(s){
-  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-}
-function popularSelect(id, lista){
-  const input =el(id);
-  const painel=input.parentElement.querySelector('.combo-lista');
-  const st={lista:lista.slice(), valorValido:''};
-  _combos[id]=st;
-
-  // Segura o foco no campo enquanto o dedo interage com a lista:
-  // permite ROLAR as opções sem que o campo "perca o foco" e a lista
-  // se feche no meio do gesto. (Não bloqueia a rolagem em si.)
-  painel.addEventListener('pointerdown', function(ev){ ev.preventDefault(); });
-
-  function renderOps(filtro){
-    const f=normalizarBusca(filtro);
-    const ops=st.lista.filter(n=>normalizarBusca(n).includes(f));
-    painel.innerHTML = ops.length
-      ? ops.map(n=>`<div class="combo-op">${escaparHtml(n)}</div>`).join('')
-      : '<div class="combo-vazio">Nenhuma opção encontrada</div>';
-    painel.querySelectorAll('.combo-op').forEach(function(op,i){
-      // 'click' só dispara se o gesto NÃO virou rolagem — o navegador
-      // suprime o clique quando o dedo desliza. Rolar rola; tocar seleciona.
-      op.addEventListener('click',function(){ escolher(ops[i]); });
-    });
-  }
-  function abrir(){
-    // com um valor já escolhido, mostra a lista completa; senão, filtra pelo texto
-    renderOps(input.value===st.valorValido ? '' : input.value);
-    painel.classList.remove('oculto');
-  }
-  function fechar(){ painel.classList.add('oculto'); }
-  function escolher(v){
-    st.valorValido=v; input.value=v; fechar();
-    input.dispatchEvent(new Event('change'));   // aciona o salvamento automático
-  }
-
-  input.addEventListener('focus', abrir);
-  input.addEventListener('input', function(){ renderOps(input.value); painel.classList.remove('oculto'); });
-  input.addEventListener('blur', function(){
-    setTimeout(function(){
-      const m=st.lista.find(n=>normalizarBusca(n)===normalizarBusca(input.value));
-      if(m){                                    // digitou o nome inteiro: vale como escolha
-        if(m!==st.valorValido){ st.valorValido=m; input.value=m; input.dispatchEvent(new Event('change')); }
-        else input.value=m;
-      } else {
-        input.value=st.valorValido;             // texto solto não vale: volta ao último válido
-      }
-      fechar();
-    },150);
-  });
-}
-// Define o valor de um campo; valores antigos fora da lista são
-// preservados como opção só naquela vistoria, para nada se perder.
-function definirSelect(id, valor){
-  const st=_combos[id]; const input=el(id);
-  if(valor && !st.lista.includes(valor)) st.lista.push(valor);
-  st.valorValido=valor||'';
-  input.value=valor||'';
-}
-
-/* ===== LISTA ===== */
-async function renderLista(){
-  const itens=(await listarVistorias()).sort((a,b)=>b.criadoEm-a.criadoEm);
-  const lista=el('lista');lista.innerHTML='';
-  const pend=itens.filter(v=>v.status==='pendente').length;
-  el('contador').textContent=itens.length===0?'Nenhuma vistoria salva':`${itens.length} vistoria(s) • ${pend} pendente(s)`;
-  el('vazio').classList.toggle('oculto',itens.length!==0);
-  for(const v of itens){
-    const card=document.createElement('div');card.className='card';
-    const enviada=v.status==='enviado';
-    const mini=v.fotos.slice(0,4).map(f=>`<img src="${urlExibicao(f)}" alt="">`).join('');
-    card.innerHTML=`
-      <div class="top">
-        <div>
-          <p class="nome">${escaparHtml(v.unidade||'(sem unidade)')}</p>
-          <p class="meta"><span>${v.fotos.length} foto(s)</span><span>${formatarData(v.data)}</span>${v.tecnico?`<span>${escaparHtml(v.tecnico)}</span>`:''}</p>
         </div>
-        <span class="badge ${enviada?'env':'pend'}">${enviada?'Enviado':'Pendente'}</span>
-      </div>
-      ${mini?`<div class="fotos-mini">${mini}</div>`:''}
-      <div class="rodape-card">${enviada?'Ver':'Revisar'}
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-      </div>`;
-    card.addEventListener('click',()=>{ navPush('review'); abrirReview(v.id); });
-    lista.appendChild(card);
-  }
-  el('rodapeLimpar').innerHTML=itens.length?'<button id="btnLimpar">Limpar tudo (teste)</button>':'';
-  if(itens.length){
-    el('btnLimpar').addEventListener('click',async()=>{
-      if(await confirmar({titulo:'Limpar tudo',mensagem:'Isso vai apagar todas as vistorias deste aparelho. Não dá para desfazer.',textoConfirmar:'Apagar tudo',perigo:true})){
-        await apagarTudo();toast('Tudo limpo');renderLista();
-      }
-    });
-  }
-}
 
-/* ===== REVISÃO ===== */
-async function abrirReview(id){
-  const v=await obterVistoria(id); if(!v)return;
-  vistoriaAtualId=id; const enviada=v.status==='enviado';
-  el('revUnidade').textContent=v.unidade||'(sem unidade)';
-  const b=el('revBadge');b.className='badge '+(enviada?'env':'pend');b.textContent=enviada?'Enviado':'Pendente';
-  el('revSum').innerHTML=`
-    <div class="linha"><span class="rot">Técnico</span><span>${escaparHtml(v.tecnico||'—')}</span></div>
-    <div class="linha"><span class="rot">Data</span><span>${formatarData(v.data)}</span></div>
-    <div class="linha"><span class="rot">Contrato</span><span>${escaparHtml(v.contrato||'—')}</span></div>`;
-  el('revFotoCount').textContent=`${v.fotos.length} foto(s)`;
-  const rf=el('revFotos'); rf.innerHTML='';
-  v.fotos.forEach(function(f,i){
-    const item=document.createElement('div'); item.className='rev-foto';
-    item.innerHTML=`<img src="${urlExibicao(f)}" alt="" style="cursor:zoom-in;">
-      <div class="cap"><span class="n">Foto ${i+1}${f.equip&&f.equip!==OPCAO_SEM_ID?` <span class="chip-equip">${escaparHtml(f.equip)}</span>`:''}</span>${f.legenda?escaparHtml(f.legenda):'<span class="vazia">Sem legenda</span>'}</div>`;
-    item.querySelector('img').addEventListener('click',()=>ampliarFoto(f.blob));
-    rf.appendChild(item);
-  });
-  el('btnEditar').classList.toggle('oculto',enviada);
-  el('revLock').classList.toggle('oculto',!enviada);
-  esconderTudo();el('reviewView').classList.remove('oculto');
-  if(!enviada) el('barraReview').classList.remove('oculto');
-  window.scrollTo(0,0);
-}
+        <div class="card">
 
-/* ===== MINIATURA (desempenho) =====
-   As listas exibem uma miniatura leve (~5-10 KB) em vez da foto
-   cheia de 1280px. A foto grande fica guardada só para o envio e
-   para a ampliação. É isso que mantém o app rápido com 20, 30+ fotos. */
-async function criarMiniatura(blob){ return comprimirFoto(blob, 220, 0.7); }
-function urlExibicao(f){ return URL.createObjectURL(f.thumb || f.blob); }
+            <h2>Relatórios anteriores</h2>
 
-/* ===== AMPLIAR FOTO (toque na miniatura; voltar fecha) ===== */
-let _visUrl=null;
-function ampliarFoto(blob){
-  _visUrl=URL.createObjectURL(blob);   // cria só agora, ao tocar
-  el('visualizadorImg').src=_visUrl;
-  el('visualizadorFoto').classList.remove('oculto');
-  navPush('foto');                     // o voltar físico fecha a ampliação
-}
-function fecharVisualizador(){
-  const vis=el('visualizadorFoto');
-  if(vis.classList.contains('oculto')) return;
-  vis.classList.add('oculto');
-  el('visualizadorImg').src='';
-  if(_visUrl){ URL.revokeObjectURL(_visUrl); _visUrl=null; }   // libera a memória
-}
+            <div id="lista-relatorios">
 
-/* ===== CÂMERA EMBUTIDA =====
-   Câmera dentro do próprio app, com o que a nativa não nos deixa
-   controlar: LANTERNA que fica acesa enquanto enquadra (Android/
-   Chrome) e pedido de FOCO CONTÍNUO ao aparelho. Se o aparelho não
-   suportar (ex.: iPhone) ou a permissão for negada, cai na câmera
-   nativa/galeria automaticamente. */
-let _camStream=null,_camTrack=null,_torchLigada=false,_buscouLente=false;
+                <div class="vazio">
+                    Nenhum relatório salvo.
+                </div>
 
-function pararStream(){
-  if(_camStream){ _camStream.getTracks().forEach(t=>t.stop()); }
-  _camStream=null; _camTrack=null;
-  el('cameraVideo').srcObject=null;
-}
-// Abre uma lente específica (ou a traseira padrão) e mostra na tela.
-async function abrirStream(deviceId, comTorch){
-  const video = deviceId
-    ? { deviceId:{exact:deviceId}, width:{ideal:1920}, height:{ideal:1080} }
-    : { facingMode:{ideal:'environment'}, width:{ideal:1920}, height:{ideal:1080} };
-  if(comTorch) video.advanced=[{torch:true}];   // alguns aparelhos só aceitam a lanterna na abertura
-  const st=await navigator.mediaDevices.getUserMedia({video, audio:false});
-  _camStream=st; _camTrack=st.getVideoTracks()[0];
-  el('cameraVideo').srcObject=st;
-  try{ await _camTrack.applyConstraints({advanced:[{focusMode:'continuous'}]}); }catch(e){}
-  return _camTrack;
-}
-// Tenta ligar/desligar a lanterna e exige CONFIRMAÇÃO do hardware.
-// O formato "advanced" é ignorado em silêncio quando não suportado —
-// então "não deu erro" NÃO significa "acendeu". Só vale se o aparelho
-// reportar torch nas configurações ativas ou anunciar a capacidade.
-async function aplicarTorch(track,on){
-  const caps=track.getCapabilities ? track.getCapabilities() : {};
-  const formas=[{advanced:[{torch:on}]},{torch:on}];
-  for(const c of formas){
-    try{
-      await track.applyConstraints(c);
-      const s=track.getSettings ? track.getSettings() : {};
-      if(s.torch===on) return true;                       // confirmado pelo hardware
-      if(s.torch===undefined && caps.torch) return true;  // capacidade anunciada, sem relato de estado
-    }catch(e){}
-  }
-  return false;
-}
+            </div>
 
-async function abrirCamera(){
-  try{ await abrirStream(null,false); }
-  catch(e){ el('inputFoto').click(); return; }   // sem suporte/permissão: caminho nativo
-  // O botão da lanterna fica SEMPRE visível: alguns aparelhos têm a
-  // lanterna mas não a "anunciam" nas capacidades. O teste confiável
-  // é tentar ligar de fato.
-  _torchLigada=false;
-  _buscouLente=false;
-  el('btnTorch').classList.remove('ligada');
-  el('btnTorch').classList.remove('invisivel');
-  el('cameraView').classList.remove('oculto');
-  navPush('camera');                              // o voltar físico fecha a câmera
-}
-async function alternarLanterna(){
-  if(!_camTrack) return;
-  const alvo=!_torchLigada;
-  if(await aplicarTorch(_camTrack,alvo)){
-    _torchLigada=alvo;
-    el('btnTorch').classList.toggle('ligada',_torchLigada);
-    return;
-  }
-  // A lente atual não expõe o LED, mas OUTRA lente do mesmo celular pode
-  // expor. Varremos as demais antes de desistir.
-  if(!_buscouLente){
-    _buscouLente=true;
-    toast('Procurando lente com lanterna…');
-    if(await tentarLenteComLanterna()) return;
-  }
-  el('btnTorch').classList.add('invisivel');
-  toast('Lanterna não suportada (lentes testadas: '+_lentesTestadas+')');
-}
-let _lentesTestadas=0;
-async function tentarLenteComLanterna(){
-  let devs=[];
-  try{ devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==='videoinput'); }
-  catch(e){ return false; }
-  const atualId=(_camTrack && _camTrack.getSettings) ? _camTrack.getSettings().deviceId : null;
-  _lentesTestadas=devs.length;
-  // O Android costuma permitir UMA câmera aberta por vez: é preciso
-  // liberar a atual antes de testar as outras lentes.
-  pararStream();
-  for(const d of devs){
-    if(d.deviceId===atualId) continue;
-    try{
-      const tr=await abrirStream(d.deviceId,true);
-      if(await aplicarTorch(tr,true)){
-        _torchLigada=true;
-        el('btnTorch').classList.add('ligada');
-        toast('Lanterna ligada ✓');
-        return true;
-      }
-      pararStream();
-    }catch(e){ pararStream(); }
-  }
-  // Nada encontrado: reabre a câmera original para a tela não ficar preta.
-  try{ await abrirStream(atualId,false); }catch(e){ try{ await abrirStream(null,false); }catch(e2){} }
-  return false;
-}
-function fecharCamera(){
-  const cam=el('cameraView');
-  if(cam.classList.contains('oculto')) return;
-  cam.classList.add('oculto');
-  pararStream();
-  _torchLigada=false;
-}
-async function capturarDaCamera(){
-  const video=el('cameraVideo');
-  if(!video.videoWidth){ toast('Câmera ainda carregando…'); return; }
-  const c=document.createElement('canvas');
-  c.width=video.videoWidth; c.height=video.videoHeight;
-  c.getContext('2d').drawImage(video,0,0);
-  const blob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.92));
-  history.back();                                 // fecha a câmera pela pilha de navegação
-  await processarNovaFoto(blob);
-}
+        </div>
 
-/* ===== FORMULÁRIO ===== */
-function limparRascunho(){rascunhoFotos.forEach(f=>URL.revokeObjectURL(f.url));rascunhoFotos=[];}
+    </section>
 
-// Cria o cartão de UMA foto (usado tanto no acréscimo quanto no re-render).
-function criarItemFoto(f){
-  const item=document.createElement('div');item.className='foto-item';
-  item.innerHTML=`
-    <img src="${f.url}" alt="" style="cursor:zoom-in;">
-    <div class="legenda-wrap">
-      <div class="combo combo-equip">
-        <input type="text" placeholder="Equipamento (opcional)" autocomplete="off">
-        <div class="combo-lista oculto"></div>
-      </div>
-      <label></label>
-      <textarea placeholder="Ex.: Evaporadora da sala 203 — dreno entupido, com vazamento sobre o forro...">${escaparHtml(f.legenda||'')}</textarea>
-      <button class="rem"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>Remover</button>
-    </div>`;
-  item.querySelector('img').addEventListener('click',()=>ampliarFoto(f.blob));
-  const ta=item.querySelector('textarea');
-  ta.addEventListener('input',()=>{f.legenda=ta.value; autosize(ta); agendarAutoSalvar();});
-  const equipInput=item.querySelector('.combo-equip input');
-  const estiloEquip=()=>equipInput.classList.toggle('preenchido', !!f.equip && f.equip!==OPCAO_SEM_ID);
-  const combo=montarCombo(
-    equipInput,
-    item.querySelector('.combo-equip .combo-lista'),
-    opcoesEquip,
-    function(v){ f.equip=v; estiloEquip(); agendarAutoSalvar(); }
-  );
-  combo.definir(f.equip||''); estiloEquip();
-  item.querySelector('.rem').addEventListener('click',()=>{
-    URL.revokeObjectURL(f.url);
-    rascunhoFotos.splice(rascunhoFotos.indexOf(f),1);
-    renderFotosForm();          // remoção é rara: re-render completo é ok
-    agendarAutoSalvar();
-  });
-  return item;
-}
-function atualizarRotulosFotos(){
-  el('fotoContador').textContent=`${rascunhoFotos.length} foto(s)`;
-  el('fotosForm').querySelectorAll('.legenda-wrap label')
-    .forEach((lb,i)=>{ lb.textContent='Legenda da foto '+(i+1); });
-}
-// Acrescenta SÓ a foto nova (não reconstrói a lista — o que mantinha
-// o app cada vez mais lento a cada foto tirada).
-function anexarFoto(f){
-  const item=criarItemFoto(f);
-  el('fotosForm').appendChild(item);
-  autosize(item.querySelector('textarea'));
-  atualizarRotulosFotos();
-}
-function renderFotosForm(){
-  const cont=el('fotosForm');cont.innerHTML='';
-  rascunhoFotos.forEach(f=>{
-    const item=criarItemFoto(f);
-    cont.appendChild(item);
-    autosize(item.querySelector('textarea'));
-  });
-  atualizarRotulosFotos();
-}
-function novoForm(){
-  clearTimeout(_autosaveTimer);
-  vistoriaAtualId=null;limparRascunho();
-  definirSelect('unidade','');definirSelect('tecnico','');definirSelect('contrato','');
-  el('data').value=new Date().toISOString().slice(0,10);
-  el('voltarTxt').textContent='Vistorias';renderFotosForm();irForm();navPush('form');
-}
-async function editarAtual(){
-  const v=await obterVistoria(vistoriaAtualId); if(!v)return;
-  limparRascunho();
-  definirSelect('unidade', v.unidade);
-  definirSelect('tecnico', v.tecnico);
-  definirSelect('contrato', v.contrato);
-  el('data').value=v.data||new Date().toISOString().slice(0,10);
-  rascunhoFotos=v.fotos.map(f=>({blob:f.blob,thumb:f.thumb||null,url:urlExibicao(f),legenda:f.legenda,equip:f.equip||'',lat:f.lat??null,lng:f.lng??null,capturadaEm:f.capturadaEm||null}));
-  el('voltarTxt').textContent='Revisão';renderFotosForm();irForm();navPush('form');
-}
 
-/* ============================================================
-   ENVIO PARA O FIREBASE
-   O SDK é carregado sob demanda (só na hora de enviar), então o
-   app continua abrindo e coletando offline mesmo sem internet.
-   ============================================================ */
-const FIRESTORE_FOTO_MAX = 700*1024; // ~700 KB por foto: cabe no limite de 1 MB por documento do Firestore
+    <!-- ================================================== -->
+    <!-- TELA NOVO RELATÓRIO -->
+    <!-- ================================================== -->
 
-let _fb=null;
-let _fbConfig=null;
-// Busca a config do próprio Firebase Hosting (endereço reservado do site).
-// Assim o repositório no GitHub não precisa conter a chave: o bloco
-// firebaseConfig acima pode ficar com valores de exemplo. O bloco só é
-// usado como reserva (ex.: testes locais fora do Hosting).
-async function obterFirebaseConfig(){
-  if(_fbConfig) return _fbConfig;
-  try{
-    const r=await fetch('/__/firebase/init.json',{cache:'no-store'});
-    if(r.ok){ _fbConfig=await r.json(); return _fbConfig; }
-  }catch(e){}
-  _fbConfig=firebaseConfig;
-  return _fbConfig;
-}
-async function initFirebase(){
-  if(_fb) return _fb;
-  const cfg=await obterFirebaseConfig();
-  const base=`https://www.gstatic.com/firebasejs/${FB_VERSAO}`;
-  const [app,auth,fs]=await Promise.all([
-    import(`${base}/firebase-app.js`),
-    import(`${base}/firebase-auth.js`),
-    import(`${base}/firebase-firestore.js`)
-  ]);
-  const application = app.getApps().length ? app.getApp() : app.initializeApp(cfg);
-  await auth.signInAnonymously(auth.getAuth(application)); // login anônimo (habilite no console)
-  _fb={ db: fs.getFirestore(application), fs };
-  return _fb;
-}
+    <section id="tela-novo" class="tela">
 
-// Converte um blob em texto base64 (sem o prefixo "data:...;base64,").
-function blobToBase64(blob){
-  return new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onload=()=>res(String(r.result).split(',')[1]);
-    r.onerror=()=>rej(r.error);
-    r.readAsDataURL(blob);
-  });
-}
+        <div class="topo-tela">
 
-// Garante que a foto caiba no limite do Firestore, reduzindo a qualidade
-// (e, só se precisar, o tamanho) o mínimo necessário. Fotos já pequenas passam intactas.
-async function ajustarParaFirestore(blob){
-  if(blob.size <= FIRESTORE_FOTO_MAX) return blob;
-  const tentativas=[[1280,0.7],[1280,0.6],[1280,0.5],[1024,0.6],[1024,0.5],[900,0.5],[800,0.45]];
-  let menor=blob;
-  for(const [dim,q] of tentativas){
-    const b=await comprimirFoto(blob, dim, q);
-    if(b.size < menor.size) menor=b;
-    if(b.size <= FIRESTORE_FOTO_MAX) return b;
-  }
-  return menor; // melhor esforço, caso nenhuma combinação atinja o alvo
-}
+            <button
+                id="btn-voltar-inicio"
+                class="voltar"
+            >
+                ←
+            </button>
 
-// Gera um id único e ESTÁVEL para cada vistoria (UUID v4, criptográfico).
-// A chance de dois ids iguais é desprezível, mesmo entre bilhões de vistorias.
-function novoId(){
-  if(window.crypto && crypto.randomUUID) return 'v_' + crypto.randomUUID();
-  // plano B (navegadores antigos): 16 bytes de aleatoriedade criptográfica
-  const bytes = (window.crypto && crypto.getRandomValues)
-    ? Array.from(crypto.getRandomValues(new Uint8Array(16)))
-    : Array.from({length:16}, ()=>Math.floor(Math.random()*256));
-  return 'v_' + bytes.map(b=>b.toString(16).padStart(2,'0')).join('');
-}
+            <h2>Novo relatório</h2>
 
-async function enviarParaFirebase(v){
-  const { db, fs } = await initFirebase();
-  const docId = v.docId || novoId();   // id fixo da vistoria → reenviar SOBRESCREVE, nunca duplica
-  // 1) documento principal da vistoria (status 'novo' = ainda não processado)
-  await fs.setDoc(fs.doc(db, 'vistorias', docId), {
-    unidade: v.unidade, tecnico: v.tecnico, data: v.data, contrato: v.contrato,
-    totalFotos: v.fotos.length, status: 'novo', enviadoEm: fs.serverTimestamp()
-  });
-  // 2) uma foto por documento na subcoleção "fotos" (imagem em base64)
-  for(let i=0;i<v.fotos.length;i++){
-    const blob   = await ajustarParaFirestore(v.fotos[i].blob);
-    const base64 = await blobToBase64(blob);
-    const fid    = String(i+1).padStart(3,'0');
-    await fs.setDoc(fs.doc(db, 'vistorias', docId, 'fotos', fid), {
-      ordem: i+1, legenda: v.fotos[i].legenda || '', equip: v.fotos[i].equip || '', mime: 'image/jpeg',
-      lat: v.fotos[i].lat ?? null, lng: v.fotos[i].lng ?? null,
-      capturadaEm: v.fotos[i].capturadaEm || null, base64
-    });
-  }
-  return docId;
-}
+        </div>
 
-/* ===== EVENTOS ===== */
-el('btnNova').addEventListener('click',novoForm);
-el('btnVoltar').addEventListener('click',()=>history.back());
-el('btnVoltarReview').addEventListener('click',()=>history.back());
-el('visualizadorFoto').addEventListener('click',()=>history.back());
-el('btnEditar').addEventListener('click',editarAtual);
-el('btnAddFoto').addEventListener('click',abrirCamera);
-el('btnFecharCam').addEventListener('click',()=>history.back());
-el('btnTorch').addEventListener('click',alternarLanterna);
-el('btnCapturar').addEventListener('click',capturarDaCamera);
+        <div class="card">
 
-// Pipeline comum às duas câmeras (embutida e nativa/galeria):
-// carimbo de local+hora, miniatura, item na lista e salvamento automático.
-async function processarNovaFoto(arq){
-  toast('Processando foto…');
-  const loc=await obterLocalizacao();
-  const agora=new Date();
-  const linhas=[
-    formatarDataHora(agora),
-    loc ? `${loc.lat.toFixed(6)}, ${loc.lng.toFixed(6)} (±${Math.round(loc.acc)} m)` : 'Localização indisponível'
-  ];
-  const blob=await processarFotoComCarimbo(arq, linhas);
-  const thumb=await criarMiniatura(blob);          // miniatura leve para exibição
-  const f={
-    blob, thumb, url:URL.createObjectURL(thumb), legenda:'', equip:'',
-    lat: loc?loc.lat:null, lng: loc?loc.lng:null, capturadaEm: agora.toISOString()
-  };
-  rascunhoFotos.push(f);
-  anexarFoto(f);                                   // acrescenta SÓ o item novo
-  agendarAutoSalvar();
-}
+            <label for="titulo">
+                Título do relatório
+            </label>
 
-el('inputFoto').addEventListener('change',async(e)=>{
-  const arq=e.target.files[0]; if(!arq)return;
-  await processarNovaFoto(arq);
-  e.target.value='';
-});
+            <input
+                id="titulo"
+                type="text"
+                placeholder="Ex.: Vistoria de manutenção"
+            >
 
-/* ===== SALVAMENTO AUTOMÁTICO =====
-   Grava o rascunho no aparelho ~1,5s depois da última alteração
-   (campo, legenda ou foto). Roda em segundo plano, sem travar a
-   tela. O botão "Salvar vistoria" continua sendo o que valida os
-   campos obrigatórios e leva à revisão. */
-let _autosaveTimer=null;
-function agendarAutoSalvar(){
-  clearTimeout(_autosaveTimer);
-  _autosaveTimer=setTimeout(autoSalvar, 1500);
-}
-async function autoSalvar(){
-  // só faz sentido com a tela do formulário aberta
-  if(el('formView').classList.contains('oculto')) return;
-  const campos={
-    unidade:(el('unidade').value||'').trim(),
-    tecnico:(el('tecnico').value||'').trim(),
-    data:el('data').value,
-    contrato:(el('contrato').value||'').trim(),
-    fotos:rascunhoFotos.map(f=>({blob:f.blob,thumb:f.thumb||null,legenda:f.legenda,equip:f.equip||'',lat:f.lat??null,lng:f.lng??null,capturadaEm:f.capturadaEm||null}))
-  };
-  // nada preenchido ainda → nada a salvar
-  if(!campos.unidade && !campos.tecnico && !campos.contrato && campos.fotos.length===0) return;
-  try{
-    if(vistoriaAtualId==null){
-      vistoriaAtualId=await criarVistoria({...campos,docId:novoId(),status:'pendente',criadoEm:Date.now()});
-    }else{
-      const orig=await obterVistoria(vistoriaAtualId);
-      if(orig && orig.status==='enviado') return;   // nunca mexe em enviadas
-      await atualizarVistoria({...orig,...campos,id:vistoriaAtualId});
-    }
-    const ind=el('autosaveInd');
-    if(ind){ ind.textContent='Salvo automaticamente ✓'; setTimeout(()=>{ind.textContent='';},2000); }
-  }catch(err){ /* silencioso: o Salvar manual continua como garantia */ }
-}
-['unidade','tecnico','data','contrato'].forEach(function(id){
-  el(id).addEventListener('change', agendarAutoSalvar);
-});
-el('btnSalvar').addEventListener('click',async()=>{
-  const unidade=(el('unidade').value||'').trim();
-  const tecnico=(el('tecnico').value||'').trim();
-  const data=el('data').value;
-  const contrato=(el('contrato').value||'').trim();
-  if(!unidade){toast('Selecione a unidade');el('unidade').focus();return;}
-  if(!tecnico){toast('Selecione o técnico');el('tecnico').focus();return;}
-  if(!data){toast('Informe a data da vistoria');el('data').focus();return;}
-  if(!contrato){toast('Selecione o contrato');el('contrato').focus();return;}
-  const fotos=rascunhoFotos.map(f=>({blob:f.blob,thumb:f.thumb||null,legenda:f.legenda,equip:f.equip||'',lat:f.lat??null,lng:f.lng??null,capturadaEm:f.capturadaEm||null}));
-  const campos={unidade,tecnico,data,contrato,fotos};
-  try{
-    if(vistoriaAtualId==null){
-      vistoriaAtualId=await criarVistoria({...campos,docId:novoId(),status:'pendente',criadoEm:Date.now()});
-      toast('Vistoria salva ✓');
-    }else{
-      const orig=await obterVistoria(vistoriaAtualId);
-      await atualizarVistoria({...orig,...campos,id:vistoriaAtualId});
-      toast('Alterações salvas ✓');
-    }
-    limparRascunho();await renderLista();
-    if(navPilha[navPilha.length-2]==='review'){
-      history.back();                       // veio de "Editar": volta à revisão existente
-    } else {
-      navPilha[navPilha.length-1]='review'; // vistoria nova: o formulário "vira" a revisão
-      history.replaceState({tela:'review'},'');
-      abrirReview(vistoriaAtualId);
-    }
-  }catch(err){toast('Erro ao salvar: '+err.message);}
-});
-el('btnEnviar').addEventListener('click',async()=>{
-  const v=await obterVistoria(vistoriaAtualId); if(!v)return;
-  if(!navigator.onLine){ toast('Sem internet. Conecte-se para enviar.'); return; }
-  const ok=await confirmar({titulo:'Enviar relatório',mensagem:'Depois de enviado, o relatório não poderá mais ser editado.',textoConfirmar:'Enviar'});
-  if(!ok)return;
-  if(!v.docId){ v.docId = novoId(); await atualizarVistoria({...v}); }   // legado: garante id estável antes de enviar
-  const btn=el('btnEnviar'); const original=btn.innerHTML;
-  btn.disabled=true; btn.textContent='Enviando…';
-  try{
-    const firebaseId = await enviarParaFirebase(v);
-    await atualizarVistoria({...v,status:'enviado',enviadoEm:Date.now(),firebaseId});
-    await renderLista();toast('Relatório enviado ✓');navIrParaLista();
-  }catch(err){
-    toast('Falha ao enviar: '+(err && err.message ? err.message : err));
-  }finally{
-    btn.disabled=false; btn.innerHTML=original;
-  }
-});
-el('btnApagarRev').addEventListener('click',async()=>{
-  const ok=await confirmar({titulo:'Apagar vistoria',mensagem:'Esta ação não pode ser desfeita.',textoConfirmar:'Apagar',perigo:true});
-  if(!ok)return;
-  await apagarVistoria(vistoriaAtualId);toast('Vistoria apagada');await renderLista();navIrParaLista();
-});
 
-/* ===== online/offline ===== */
-function atualizarConexao(){const on=navigator.onLine;el('pill').classList.toggle('online',on);el('pillTxt').textContent=on?'Online':'Offline';}
-window.addEventListener('online',atualizarConexao);
-window.addEventListener('offline',atualizarConexao);
+            <label for="local">
+                Local
+            </label>
 
-/* ===== Service worker (só ativa em https ou localhost) ===== */
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{navigator.serviceWorker.register('service-worker.js').catch(()=>{});});
-}
+            <input
+                id="local"
+                type="text"
+                placeholder="Ex.: Belo Horizonte - CEOP"
+            >
 
-/* ===== Início ===== */
-history.replaceState({tela:'lista'},'');   // âncora da pilha de navegação
-// Catálogo de equipamentos: usa o cache local e, se houver internet,
-// atualiza em segundo plano (sem travar a abertura do app).
-(async function(){
-  try{
-    const c=await obterConfigLocal('catalogo');
-    if(c && c.json) CATALOGO=JSON.parse(c.json);
-  }catch(e){}
-  if(navigator.onLine) atualizarCatalogo();
-})();
-popularSelect('unidade', EDIFICACOES);
-popularSelect('tecnico', TECNICOS);
-popularSelect('contrato', CONTRATOS);
-atualizarConexao();
-renderLista().catch(err=>toast('Erro ao abrir o banco: '+err.message));
-</script>
+
+            <label for="responsavel">
+                Responsável
+            </label>
+
+            <input
+                id="responsavel"
+                type="text"
+                placeholder="Nome do responsável"
+            >
+
+
+            <label for="data">
+                Data
+            </label>
+
+            <input
+                id="data"
+                type="date"
+            >
+
+
+            <button
+                id="btn-iniciar-relatorio"
+                class="botao botao-principal"
+            >
+                Iniciar relatório
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================================================== -->
+    <!-- TELA DO RELATÓRIO -->
+    <!-- ================================================== -->
+
+    <section id="tela-relatorio" class="tela">
+
+        <div class="topo-tela">
+
+            <button
+                id="btn-voltar-relatorios"
+                class="voltar"
+            >
+                ←
+            </button>
+
+            <div>
+
+                <div
+                    id="relatorio-titulo"
+                    class="relatorio-titulo"
+                >
+                    Relatório
+                </div>
+
+                <div
+                    id="relatorio-info"
+                    class="relatorio-info"
+                >
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div id="lista-registros">
+
+            <div class="vazio">
+                Nenhum registro adicionado.
+            </div>
+
+        </div>
+
+
+        <div class="card">
+
+            <button
+                id="btn-novo-registro"
+                class="botao botao-principal"
+            >
+                + Novo registro
+            </button>
+
+        </div>
+
+
+        <div class="card">
+
+            <button
+                id="btn-gerar-pdf"
+                class="botao botao-secundario"
+            >
+                📄 Gerar PDF
+            </button>
+
+        </div>
+
+    </section>
+
+
+    <!-- ================================================== -->
+    <!-- TELA NOVO REGISTRO -->
+    <!-- ================================================== -->
+
+    <section id="tela-registro" class="tela">
+
+        <div class="topo-tela">
+
+            <button
+                id="btn-voltar-relatorio"
+                class="voltar"
+            >
+                ←
+            </button>
+
+            <h2>Novo registro</h2>
+
+        </div>
+
+
+        <div class="card">
+
+            <p>
+                O que você deseja registrar?
+            </p>
+
+
+            <button
+                class="botao botao-secundario btn-tipo"
+                data-tipo="concluida"
+            >
+                ✅ Atividade concluída
+            </button>
+
+
+            <button
+                class="botao botao-secundario btn-tipo"
+                data-tipo="pendencia"
+            >
+                ⚠️ Pendência de serviço
+            </button>
+
+
+            <button
+                class="botao botao-secundario btn-tipo"
+                data-tipo="problema"
+            >
+                ❌ Problema / anomalia
+            </button>
+
+        </div>
+
+
+        <div
+            id="form-registro"
+            class="card"
+            style="display:none;"
+        >
+
+            <h3 id="titulo-tipo-registro">
+                Registro
+            </h3>
+
+
+            <label for="observacao">
+                Observação
+            </label>
+
+            <textarea
+                id="observacao"
+                placeholder="Descreva o que foi identificado ou realizado..."
+            ></textarea>
+
+
+            <p>
+                <strong>Fotos</strong>
+            </p>
+
+            <p class="subtitulo">
+                A função de fotos será adicionada na próxima etapa.
+            </p>
+
+
+            <button
+                id="btn-salvar-registro"
+                class="botao botao-principal"
+            >
+                Adicionar ao relatório
+            </button>
+
+        </div>
+
+    </section>
+
+</main>
+
+
 <script src="js/db.js"></script>
-<script src="js/app.js"></script>
+<script src="js/app.js?v=1.0.1"></script>
+
 </body>
 </html>

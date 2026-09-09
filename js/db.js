@@ -1,140 +1,93 @@
 // ============================================================
-// APP VISTORIAS V2
-// Banco de dados local - IndexedDB
+// APP VISTORIAS - V1
+// Banco local simplificado
 // ============================================================
 
 const DB_CONFIG = {
-    nome: "appVistoriasV2",
+    nome: "appVistoriasV1",
     versao: 1
 };
 
-// ------------------------------------------------------------
-// Estrutura do banco
-// ------------------------------------------------------------
-
 const DB_STORES = {
-    locais: {
+    relatorios: {
         keyPath: "id",
         indexes: [
-            { name: "nome", keyPath: "nome", options: { unique: false } },
-            { name: "ativo", keyPath: "ativo", options: { unique: false } }
+            {
+                name: "data",
+                keyPath: "data",
+                options: { unique: false }
+            },
+            {
+                name: "status",
+                keyPath: "status",
+                options: { unique: false }
+            }
         ]
     },
 
-    areas: {
+    registros: {
         keyPath: "id",
         indexes: [
-            { name: "localId", keyPath: "localId", options: { unique: false } },
-            { name: "nome", keyPath: "nome", options: { unique: false } }
+            {
+                name: "relatorioId",
+                keyPath: "relatorioId",
+                options: { unique: false }
+            },
+            {
+                name: "tipo",
+                keyPath: "tipo",
+                options: { unique: false }
+            },
+            {
+                name: "ordem",
+                keyPath: "ordem",
+                options: { unique: false }
+            }
         ]
-    },
-
-    equipamentos: {
-        keyPath: "id",
-        indexes: [
-            { name: "localId", keyPath: "localId", options: { unique: false } },
-            { name: "areaId", keyPath: "areaId", options: { unique: false } },
-            { name: "patrimonio", keyPath: "patrimonio", options: { unique: false } }
-        ]
-    },
-
-    categorias: {
-        keyPath: "id",
-        indexes: [
-            { name: "nome", keyPath: "nome", options: { unique: false } },
-            { name: "ordem", keyPath: "ordem", options: { unique: false } }
-        ]
-    },
-
-    checklists: {
-        keyPath: "id",
-        indexes: [
-            { name: "nome", keyPath: "nome", options: { unique: false } },
-            { name: "ativo", keyPath: "ativo", options: { unique: false } }
-        ]
-    },
-
-    itensChecklist: {
-        keyPath: "id",
-        indexes: [
-            { name: "checklistId", keyPath: "checklistId", options: { unique: false } },
-            { name: "categoriaId", keyPath: "categoriaId", options: { unique: false } },
-            { name: "ordem", keyPath: "ordem", options: { unique: false } }
-        ]
-    },
-
-    vistorias: {
-        keyPath: "id",
-        indexes: [
-            { name: "localId", keyPath: "localId", options: { unique: false } },
-            { name: "checklistId", keyPath: "checklistId", options: { unique: false } },
-            { name: "status", keyPath: "status", options: { unique: false } },
-            { name: "dataInicio", keyPath: "dataInicio", options: { unique: false } }
-        ]
-    },
-
-    respostas: {
-        keyPath: "id",
-        indexes: [
-            { name: "vistoriaId", keyPath: "vistoriaId", options: { unique: false } },
-            { name: "itemChecklistId", keyPath: "itemChecklistId", options: { unique: false } },
-            { name: "resultado", keyPath: "resultado", options: { unique: false } }
-        ]
-    },
-
-    fotos: {
-        keyPath: "id",
-        indexes: [
-            { name: "vistoriaId", keyPath: "vistoriaId", options: { unique: false } },
-            { name: "respostaId", keyPath: "respostaId", options: { unique: false } },
-            { name: "equipamentoId", keyPath: "equipamentoId", options: { unique: false } },
-            { name: "capturadaEm", keyPath: "capturadaEm", options: { unique: false } }
-        ]
-    },
-
-    pendencias: {
-        keyPath: "id",
-        indexes: [
-            { name: "vistoriaId", keyPath: "vistoriaId", options: { unique: false } },
-            { name: "respostaId", keyPath: "respostaId", options: { unique: false } },
-            { name: "status", keyPath: "status", options: { unique: false } },
-            { name: "prioridade", keyPath: "prioridade", options: { unique: false } }
-        ]
-    },
-
-    meta: {
-        keyPath: "id",
-        indexes: []
     }
 };
 
 // ------------------------------------------------------------
-// Abre/cria o banco
+// Gerar ID único
 // ------------------------------------------------------------
 
-function abrirBancoV2() {
+function gerarId() {
+    if (window.crypto && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+// ------------------------------------------------------------
+// Abrir / criar banco
+// ------------------------------------------------------------
+
+function abrirBancoV1() {
     return new Promise((resolve, reject) => {
+
         const request = indexedDB.open(
             DB_CONFIG.nome,
             DB_CONFIG.versao
         );
 
         request.onupgradeneeded = (event) => {
+
             const db = event.target.result;
 
             for (const [storeName, config] of Object.entries(DB_STORES)) {
-                let store;
 
                 if (!db.objectStoreNames.contains(storeName)) {
-                    store = db.createObjectStore(storeName, {
-                        keyPath: config.keyPath
-                    });
-                } else {
-                    store = event.target.transaction.objectStore(storeName);
-                }
 
-                for (const index of config.indexes) {
-                    if (!store.indexNames.contains(index.name)) {
+                    const store = db.createObjectStore(
+                        storeName,
+                        {
+                            keyPath: config.keyPath
+                        }
+                    );
+
+                    for (const index of config.indexes) {
+
                         store.createIndex(
                             index.name,
                             index.keyPath,
@@ -146,6 +99,7 @@ function abrirBancoV2() {
         };
 
         request.onsuccess = () => {
+
             const db = request.result;
 
             db.onversionchange = () => {
@@ -162,23 +116,12 @@ function abrirBancoV2() {
 }
 
 // ------------------------------------------------------------
-// Gera ID único
-// ------------------------------------------------------------
-
-function gerarId() {
-    if (window.crypto && crypto.randomUUID) {
-        return crypto.randomUUID();
-    }
-
-    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-// ------------------------------------------------------------
-// Salva um registro
+// Salvar registro
 // ------------------------------------------------------------
 
 async function salvarRegistro(storeName, dados) {
-    const db = await abrirBancoV2();
+
+    const db = await abrirBancoV1();
 
     const registro = {
         ...dados,
@@ -186,6 +129,7 @@ async function salvarRegistro(storeName, dados) {
     };
 
     return new Promise((resolve, reject) => {
+
         const transaction = db.transaction(
             storeName,
             "readwrite"
@@ -214,19 +158,22 @@ async function salvarRegistro(storeName, dados) {
 }
 
 // ------------------------------------------------------------
-// Busca um registro pelo ID
+// Buscar registro por ID
 // ------------------------------------------------------------
 
 async function buscarRegistro(storeName, id) {
-    const db = await abrirBancoV2();
+
+    const db = await abrirBancoV1();
 
     return new Promise((resolve, reject) => {
+
         const transaction = db.transaction(
             storeName,
             "readonly"
         );
 
         const store = transaction.objectStore(storeName);
+
         const request = store.get(id);
 
         request.onsuccess = () => {
@@ -244,19 +191,22 @@ async function buscarRegistro(storeName, id) {
 }
 
 // ------------------------------------------------------------
-// Lista todos os registros
+// Listar registros
 // ------------------------------------------------------------
 
 async function listarRegistros(storeName) {
-    const db = await abrirBancoV2();
+
+    const db = await abrirBancoV1();
 
     return new Promise((resolve, reject) => {
+
         const transaction = db.transaction(
             storeName,
             "readonly"
         );
 
         const store = transaction.objectStore(storeName);
+
         const request = store.getAll();
 
         request.onsuccess = () => {
@@ -274,19 +224,61 @@ async function listarRegistros(storeName) {
 }
 
 // ------------------------------------------------------------
-// Disponibiliza o banco para os demais módulos
+// Excluir registro
+// ------------------------------------------------------------
+
+async function excluirRegistro(storeName, id) {
+
+    const db = await abrirBancoV1();
+
+    return new Promise((resolve, reject) => {
+
+        const transaction = db.transaction(
+            storeName,
+            "readwrite"
+        );
+
+        const store = transaction.objectStore(storeName);
+
+        const request = store.delete(id);
+
+        request.onsuccess = () => {
+            resolve(true);
+        };
+
+        request.onerror = () => {
+            reject(request.error);
+        };
+
+        transaction.oncomplete = () => {
+            db.close();
+        };
+    });
+}
+
+// ------------------------------------------------------------
+// API pública da V1
 // ------------------------------------------------------------
 
 window.AppVistoriasDB = {
+
     config: DB_CONFIG,
+
     stores: DB_STORES,
-    abrir: abrirBancoV2,
+
+    abrir: abrirBancoV1,
+
     gerarId,
+
     salvar: salvarRegistro,
+
     buscar: buscarRegistro,
-    listar: listarRegistros
+
+    listar: listarRegistros,
+
+    excluir: excluirRegistro
 };
 
 console.log(
-    `Banco V2 carregado: ${DB_CONFIG.nome} v${DB_CONFIG.versao}`
+    `Banco V1 carregado: ${DB_CONFIG.nome} v${DB_CONFIG.versao}`
 );
