@@ -22,7 +22,7 @@ let tipoRegistroAtual = null;
 
 
 // ============================================================
-// UTILITÁRIOS
+// 1. UTILITÁRIOS
 // ============================================================
 
 function mostrarTela(id) {
@@ -72,9 +72,19 @@ function formatarData(data) {
     return `${partes[2]}/${partes[1]}/${partes[0]}`;
 }
 
+function escaparHTML(valor) {
+
+    return String(valor)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
 
 // ============================================================
-// RELATÓRIOS
+// 2. RELATÓRIOS
 // ============================================================
 
 async function carregarRelatorios() {
@@ -290,13 +300,28 @@ async function mostrarRelatorio(relatorio) {
     );
 }
 
+function limparFormularioRelatorio() {
+
+    document.getElementById(
+        "titulo"
+    ).value = "";
+
+    document.getElementById(
+        "local"
+    ).value = "";
+
+    document.getElementById(
+        "responsavel"
+    ).value = "";
+
+    document.getElementById(
+        "data"
+    ).value = dataHoje();
+}
+
 
 // ============================================================
-// REGISTROS
-// ============================================================
-
-// ============================================================
-// REGISTROS
+// 3. REGISTROS
 // ============================================================
 
 async function carregarRegistros(relatorioId) {
@@ -467,7 +492,260 @@ async function carregarRegistros(relatorioId) {
         );
 
 }
+
+function obterNomeTipo(tipo) {
+    if (tipo === "concluida") return "Atividade concluída";
+    if (tipo === "pendencia") return "Pendência de serviço";
+    if (tipo === "problema") return "Problema / anomalia";
+
+    return "Registro";
+}
+
+
+function classeTipo(tipo) {
+
+    switch (tipo) {
+
+        case "concluida":
+            return "tipo-concluida";
+
+        case "pendencia":
+            return "tipo-pendencia";
+
+        case "problema":
+            return "tipo-problema";
+
+        default:
+            return "";
+    }
+}
+
+
 // ============================================================
+// NOVO REGISTRO
+// ============================================================
+
+function selecionarTipo(tipo) {
+
+    tipoRegistroAtual = tipo;
+
+
+    document.getElementById(
+        "titulo-tipo-registro"
+    ).textContent =
+        obterNomeTipo(tipo);
+
+
+    document.getElementById(
+        "observacao"
+    ).value = "";
+
+
+    document.getElementById(
+        "form-registro"
+    ).style.display = "block";
+
+
+    document
+        .getElementById("form-registro")
+        .scrollIntoView({
+            behavior: "smooth"
+        });
+}
+
+async function salvarNovoRegistro() {
+
+    if (!relatorioAtual) {
+
+        alert(
+            "Nenhum relatório está aberto."
+        );
+
+        return;
+    }
+
+
+    if (!tipoRegistroAtual) {
+
+        alert(
+            "Selecione o tipo do registro."
+        );
+
+        return;
+    }
+
+
+    const observacao =
+        document
+            .getElementById("observacao")
+            .value
+            .trim();
+
+
+    if (!observacao) {
+
+        alert(
+            "Informe uma observação."
+        );
+
+        return;
+    }
+
+
+    // ========================================================
+    // VERIFICAR SE É EDIÇÃO OU NOVO REGISTRO
+    // ========================================================
+
+    if (window.registroEmEdicao) {
+
+        const registro =
+            window.registroEmEdicao;
+
+
+        // ----------------------------------------------------
+        // ATUALIZAR REGISTRO EXISTENTE
+        // ----------------------------------------------------
+
+        registro.tipo =
+            tipoRegistroAtual;
+
+
+        registro.observacao =
+            observacao;
+
+
+        registro.fotos =
+            window.fotosTemporarias || [];
+
+
+        registro.atualizadoEm =
+            new Date().toISOString();
+
+
+        await AppVistoriasDB.salvar(
+            "registros",
+            registro
+        );
+
+
+        // ----------------------------------------------------
+        // LIMPAR MODO DE EDIÇÃO
+        // ----------------------------------------------------
+
+        window.registroEmEdicao =
+            null;
+
+
+    } else {
+
+        // ====================================================
+        // NOVO REGISTRO
+        // ====================================================
+
+        const registros =
+            await AppVistoriasDB.listar(
+                "registros"
+            );
+
+
+        const registrosDoRelatorio =
+            registros.filter(
+                registro =>
+                    registro.relatorioId ===
+                    relatorioAtual.id
+            );
+
+
+        const registro = {
+
+            id:
+                AppVistoriasDB.gerarId(),
+
+            relatorioId:
+                relatorioAtual.id,
+
+            ordem:
+                registrosDoRelatorio.length + 1,
+
+            tipo:
+                tipoRegistroAtual,
+
+            observacao,
+
+            fotos:
+                window.fotosTemporarias || [],
+
+            criadoEm:
+                new Date().toISOString()
+
+        };
+
+
+        await AppVistoriasDB.salvar(
+            "registros",
+            registro
+        );
+
+    }
+
+
+    // ========================================================
+    // ATUALIZAR RELATÓRIO
+    // ========================================================
+
+    relatorioAtual.atualizadoEm =
+        new Date().toISOString();
+
+
+    await AppVistoriasDB.salvar(
+        "relatorios",
+        relatorioAtual
+    );
+
+
+    // ========================================================
+    // LIMPAR FORMULÁRIO
+    // ========================================================
+
+    tipoRegistroAtual =
+        null;
+
+
+    window.fotosTemporarias =
+        [];
+
+
+    document.getElementById(
+        "observacao"
+    ).value = "";
+
+
+    document.getElementById(
+        "form-registro"
+    ).style.display =
+        "none";
+
+
+    // ========================================================
+    // ATUALIZAR RELATÓRIO NA TELA
+    // ========================================================
+
+    await mostrarRelatorio(
+        relatorioAtual
+    );
+
+
+    mostrarTela(
+        "tela-relatorio"
+    );
+
+}
+
+
+// ============================================================
+// 4. VISUALIZAÇÃO / EDIÇÃO / EXCLUSÃO
+// ============================================================
+
 // VISUALIZAÇÃO DO REGISTRO
 // ============================================================
 
@@ -705,82 +983,6 @@ function editarRegistro() {
 
 }
 
-// ============================================================
-// BOTÕES DO MODAL
-// ============================================================
-
-const btnFecharModalRegistro =
-    document.getElementById(
-        "btn-fechar-modal-registro"
-    );
-
-
-const btnFecharModalRegistroRodape =
-    document.getElementById(
-        "btn-fechar-modal-registro-rodape"
-    );
-
-
-if (btnFecharModalRegistro) {
-
-    btnFecharModalRegistro.addEventListener(
-        "click",
-        fecharVisualizacaoRegistro
-    );
-
-}
-
-
-if (btnFecharModalRegistroRodape) {
-
-    btnFecharModalRegistroRodape.addEventListener(
-        "click",
-        fecharVisualizacaoRegistro
-    );
-
-}
-// ============================================================
-// BOTÃO EDITAR REGISTRO
-// ============================================================
-
-const btnEditarRegistro =
-    document.getElementById(
-        "btn-editar-registro"
-    );
-
-
-if (btnEditarRegistro) {
-
-    btnEditarRegistro.addEventListener(
-        "click",
-        editarRegistro
-    );
-
-}
-
-// ============================================================
-// BOTÃO EXCLUIR REGISTRO
-// ============================================================
-
-const btnExcluirRegistroEdicao =
-    document.getElementById(
-        "btn-excluir-registro-edicao"
-    );
-
-
-if (btnExcluirRegistroEdicao) {
-
-    btnExcluirRegistroEdicao.addEventListener(
-        "click",
-        excluirRegistroAtual
-    );
-
-}
-
-// ============================================================
-// EXCLUIR REGISTRO
-// ============================================================
-
 async function excluirRegistroAtual() {
 
     const registro =
@@ -918,304 +1120,251 @@ async function excluirRegistroAtual() {
 
 }
 
-function obterNomeTipo(tipo) {
-
-    switch (tipo) {
-
-        case "concluida":
-            return "Atividade concluída";
-
-        case "pendencia":
-            return "Pendência";
-
-        case "problema":
-            return "Problema";
-
-        default:
-            return "Registro";
-    }
-}
-
-
-function classeTipo(tipo) {
-
-    switch (tipo) {
-
-        case "concluida":
-            return "tipo-concluida";
-
-        case "pendencia":
-            return "tipo-pendencia";
-
-        case "problema":
-            return "tipo-problema";
-
-        default:
-            return "";
-    }
-}
-
 
 // ============================================================
-// NOVO REGISTRO
+// 5. FOTOS
 // ============================================================
 
-function selecionarTipo(tipo) {
+// ==================================================
+// FOTOS - V1
+// ==================================================
 
-    tipoRegistroAtual = tipo;
-
-
-    document.getElementById(
-        "titulo-tipo-registro"
-    ).textContent =
-        obterNomeTipo(tipo);
+window.fotosTemporarias = [];
 
 
-    document.getElementById(
-        "observacao"
-    ).value = "";
+// Elementos da tela
+const btnTirarFoto = document.getElementById("btn-tirar-foto");
+const btnEscolherFoto = document.getElementById("btn-escolher-foto");
+
+const inputCamera = document.getElementById("input-camera");
+const inputGaleria = document.getElementById("input-galeria");
+
+const listaFotos = document.getElementById("lista-fotos");
+
+// ==================================================
+// MOSTRAR MINIATURAS
+// ==================================================
+
+function mostrarMiniaturasFotos() {
+
+    listaFotos.innerHTML = "";
+
+    window.fotosTemporarias.forEach((foto, indice) => {
+
+        const container = document.createElement("div");
+
+        container.className = "foto-item";
+
+        container.innerHTML = `
+            <img
+                src="${foto}"
+                alt="Foto ${indice + 1}"
+                class="miniatura-foto"
+            >
+
+            <button
+                type="button"
+                class="botao-remover-foto"
+                data-indice="${indice}"
+            >
+                ✕
+            </button>
+        `;
+
+        listaFotos.appendChild(container);
 
 
-    document.getElementById(
-        "form-registro"
-    ).style.display = "block";
+        // ==================================================
+        // CLIQUE NA MINIATURA
+        // ==================================================
 
+        const imagem =
+            container.querySelector(".miniatura-foto");
+
+        imagem.addEventListener("click", () => {
+
+            abrirFotoAmpliada(
+                foto,
+                indice
+            );
+
+        });
+    });
+
+
+    // ==================================================
+    // BOTÕES DE REMOVER
+    // ==================================================
 
     document
-        .getElementById("form-registro")
-        .scrollIntoView({
-            behavior: "smooth"
+        .querySelectorAll(".botao-remover-foto")
+        .forEach(botao => {
+
+            botao.addEventListener("click", () => {
+
+                const indice =
+                    Number(botao.dataset.indice);
+
+                window.fotosTemporarias.splice(
+                    indice,
+                    1
+                );
+
+                mostrarMiniaturasFotos();
+
+            });
+
         });
 }
 
+// ==================================================
+// FOTO AMPLIADA
+// ==================================================
 
-async function salvarNovoRegistro() {
+function abrirFotoAmpliada(foto, indice = 0) {
 
-    if (!relatorioAtual) {
+    const modal =
+        document.getElementById("modal-foto-ampliada");
 
-        alert(
-            "Nenhum relatório está aberto."
-        );
+    const imagem =
+        document.getElementById("foto-ampliada");
 
+    if (!modal || !imagem) {
         return;
     }
 
+    imagem.src = foto;
 
-    if (!tipoRegistroAtual) {
+    imagem.alt =
+        `Foto ampliada ${indice + 1}`;
 
-        alert(
-            "Selecione o tipo do registro."
-        );
+    modal.style.display = "flex";
+}
 
-        return;
+// ==================================================
+// FECHAR FOTO AMPLIADA
+// ==================================================
+
+function fecharFotoAmpliada() {
+
+    const modal =
+        document.getElementById("modal-foto-ampliada");
+
+    const imagem =
+        document.getElementById("foto-ampliada");
+
+    if (imagem) {
+        imagem.src = "";
     }
 
-
-    const observacao =
-        document
-            .getElementById("observacao")
-            .value
-            .trim();
-
-
-    if (!observacao) {
-
-        alert(
-            "Informe uma observação."
-        );
-
-        return;
+    if (modal) {
+        modal.style.display = "none";
     }
+}
 
+// ==================================================
+// ADICIONAR FOTOS
+// ==================================================
 
-    // ========================================================
-    // VERIFICAR SE É EDIÇÃO OU NOVO REGISTRO
-    // ========================================================
+function adicionarFotos(arquivos) {
 
-    if (window.registroEmEdicao) {
+    Array.from(arquivos).forEach(arquivo => {
 
-        const registro =
-            window.registroEmEdicao;
+        if (!arquivo.type.startsWith("image/")) {
+            return;
+        }
 
+        const leitor = new FileReader();
 
-        // ----------------------------------------------------
-        // ATUALIZAR REGISTRO EXISTENTE
-        // ----------------------------------------------------
+        leitor.onload = function(evento) {
 
-        registro.tipo =
-            tipoRegistroAtual;
-
-
-        registro.observacao =
-            observacao;
-
-
-        registro.fotos =
-            window.fotosTemporarias || [];
-
-
-        registro.atualizadoEm =
-            new Date().toISOString();
-
-
-        await AppVistoriasDB.salvar(
-            "registros",
-            registro
-        );
-
-
-        // ----------------------------------------------------
-        // LIMPAR MODO DE EDIÇÃO
-        // ----------------------------------------------------
-
-        window.registroEmEdicao =
-            null;
-
-
-    } else {
-
-        // ====================================================
-        // NOVO REGISTRO
-        // ====================================================
-
-        const registros =
-            await AppVistoriasDB.listar(
-                "registros"
+            window.fotosTemporarias.push(
+                evento.target.result
             );
 
-
-        const registrosDoRelatorio =
-            registros.filter(
-                registro =>
-                    registro.relatorioId ===
-                    relatorioAtual.id
-            );
-
-
-        const registro = {
-
-            id:
-                AppVistoriasDB.gerarId(),
-
-            relatorioId:
-                relatorioAtual.id,
-
-            ordem:
-                registrosDoRelatorio.length + 1,
-
-            tipo:
-                tipoRegistroAtual,
-
-            observacao,
-
-            fotos:
-                window.fotosTemporarias || [],
-
-            criadoEm:
-                new Date().toISOString()
-
+            mostrarMiniaturasFotos();
         };
 
-
-        await AppVistoriasDB.salvar(
-            "registros",
-            registro
-        );
-
-    }
+        leitor.readAsDataURL(arquivo);
+    });
+}
 
 
-    // ========================================================
-    // ATUALIZAR RELATÓRIO
-    // ========================================================
+// ============================================================
+// 6. EVENTOS DA INTERFACE
+// ============================================================
 
-    relatorioAtual.atualizadoEm =
-        new Date().toISOString();
+// ============================================================
+// BOTÕES DO MODAL
+// ============================================================
 
-
-    await AppVistoriasDB.salvar(
-        "relatorios",
-        relatorioAtual
+const btnFecharModalRegistro =
+    document.getElementById(
+        "btn-fechar-modal-registro"
     );
 
 
-    // ========================================================
-    // LIMPAR FORMULÁRIO
-    // ========================================================
-
-    tipoRegistroAtual =
-        null;
-
-
-    window.fotosTemporarias =
-        [];
-
-
+const btnFecharModalRegistroRodape =
     document.getElementById(
-        "observacao"
-    ).value = "";
-
-
-    document.getElementById(
-        "form-registro"
-    ).style.display =
-        "none";
-
-
-    // ========================================================
-    // ATUALIZAR RELATÓRIO NA TELA
-    // ========================================================
-
-    await mostrarRelatorio(
-        relatorioAtual
+        "btn-fechar-modal-registro-rodape"
     );
 
 
-    mostrarTela(
-        "tela-relatorio"
+if (btnFecharModalRegistro) {
+
+    btnFecharModalRegistro.addEventListener(
+        "click",
+        fecharVisualizacaoRegistro
     );
 
 }
 
 
+if (btnFecharModalRegistroRodape) {
+
+    btnFecharModalRegistroRodape.addEventListener(
+        "click",
+        fecharVisualizacaoRegistro
+    );
+
+}
 // ============================================================
-// LIMPAR FORMULÁRIO
+// BOTÃO EDITAR REGISTRO
 // ============================================================
 
-function limparFormularioRelatorio() {
-
+const btnEditarRegistro =
     document.getElementById(
-        "titulo"
-    ).value = "";
+        "btn-editar-registro"
+    );
 
-    document.getElementById(
-        "local"
-    ).value = "";
 
-    document.getElementById(
-        "responsavel"
-    ).value = "";
+if (btnEditarRegistro) {
 
-    document.getElementById(
-        "data"
-    ).value = dataHoje();
+    btnEditarRegistro.addEventListener(
+        "click",
+        editarRegistro
+    );
+
 }
 
-
 // ============================================================
-// SEGURANÇA BÁSICA PARA TEXTO HTML
+// BOTÃO EXCLUIR REGISTRO
 // ============================================================
 
-function escaparHTML(valor) {
+const btnExcluirRegistroEdicao =
+    document.getElementById(
+        "btn-excluir-registro-edicao"
+    );
 
-    return String(valor)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+
+if (btnExcluirRegistroEdicao) {
+
+    btnExcluirRegistroEdicao.addEventListener(
+        "click",
+        excluirRegistroAtual
+    );
+
 }
-
 
 // ============================================================
 // EVENTOS
@@ -1309,7 +1458,8 @@ document.addEventListener(
 
                 tipoRegistroAtual = null;
 window.registroEmEdicao = null;
-
+                window.fotosTemporarias = [];
+                mostrarMiniaturasFotos();
 document.getElementById(
     "btn-excluir-registro-edicao"
 ).style.display =
@@ -1386,104 +1536,65 @@ document.getElementById(
 
     }
 );
-// ==================================================
-// FOTOS - V1
-// ==================================================
-
-window.fotosTemporarias = [];
-
-
-// Elementos da tela
-const btnTirarFoto = document.getElementById("btn-tirar-foto");
-const btnEscolherFoto = document.getElementById("btn-escolher-foto");
-
-const inputCamera = document.getElementById("input-camera");
-const inputGaleria = document.getElementById("input-galeria");
-
-const listaFotos = document.getElementById("lista-fotos");
-
 
 // ==================================================
-// MOSTRAR MINIATURAS
+// EVENTOS DA FOTO AMPLIADA
 // ==================================================
 
-function mostrarMiniaturasFotos() {
+const btnFecharFotoAmpliada =
+    document.getElementById(
+        "btn-fechar-foto-ampliada"
+    );
 
-    listaFotos.innerHTML = "";
+if (btnFecharFotoAmpliada) {
 
-    window.fotosTemporarias.forEach((foto, indice) => {
-
-        const container = document.createElement("div");
-
-        container.className = "foto-item";
-
-        container.innerHTML = `
-            <img
-                src="${foto}"
-                alt="Foto ${indice + 1}"
-                class="miniatura-foto"
-            >
-
-            <button
-                type="button"
-                class="botao-remover-foto"
-                data-indice="${indice}"
-            >
-                ✕
-            </button>
-        `;
-
-        listaFotos.appendChild(container);
-    });
-
-
-    // Botões de remover
-    document
-        .querySelectorAll(".botao-remover-foto")
-        .forEach(botao => {
-
-            botao.addEventListener("click", () => {
-
-                const indice = Number(
-                    botao.dataset.indice
-                );
-
-                window.fotosTemporarias.splice(indice, 1);
-
-                mostrarMiniaturasFotos();
-            });
-
-        });
+    btnFecharFotoAmpliada.addEventListener(
+        "click",
+        fecharFotoAmpliada
+    );
 }
 
 
-// ==================================================
-// ADICIONAR FOTOS
-// ==================================================
+const modalFotoAmpliada =
+    document.getElementById(
+        "modal-foto-ampliada"
+    );
 
-function adicionarFotos(arquivos) {
+if (modalFotoAmpliada) {
 
-    Array.from(arquivos).forEach(arquivo => {
+    modalFotoAmpliada.addEventListener(
+        "click",
+        (evento) => {
 
-        if (!arquivo.type.startsWith("image/")) {
-            return;
+            // Fecha quando clicar no fundo escuro.
+            // Clicar na própria foto não fecha.
+
+            if (
+                evento.target ===
+                modalFotoAmpliada
+            ) {
+
+                fecharFotoAmpliada();
+            }
         }
-
-        const leitor = new FileReader();
-
-        leitor.onload = function(evento) {
-
-            window.fotosTemporarias.push(
-                evento.target.result
-            );
-
-            mostrarMiniaturasFotos();
-        };
-
-        leitor.readAsDataURL(arquivo);
-    });
+    );
 }
 
+
+// ==================================================
+// TECLA ESC
+// ==================================================
+
+document.addEventListener(
+    "keydown",
+    (evento) => {
+
+        if (evento.key === "Escape") {
+
+            fecharFotoAmpliada();
+        }
+    }
+);
 
 // ==================================================
 // BOTÃO TIRAR FOTO

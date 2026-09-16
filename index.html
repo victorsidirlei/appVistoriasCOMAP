@@ -843,6 +843,58 @@
 
     </section>
 
+    <!-- ================================================== -->
+<!-- FOTO AMPLIADA -->
+<!-- ================================================== -->
+
+<div
+    id="modal-foto-ampliada"
+    style="
+        display:none;
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,0.85);
+        z-index:2000;
+        align-items:center;
+        justify-content:center;
+        padding:20px;
+    "
+>
+    <button
+        type="button"
+        id="btn-fechar-foto-ampliada"
+        style="
+            position:absolute;
+            top:15px;
+            right:15px;
+            width:42px;
+            height:42px;
+            border:none;
+            border-radius:50%;
+            background:white;
+            color:#164477;
+            font-size:22px;
+            font-weight:bold;
+            cursor:pointer;
+            z-index:2001;
+        "
+    >
+        ✕
+    </button>
+
+    <img
+        id="foto-ampliada"
+        src=""
+        alt="Foto ampliada"
+        style="
+            max-width:95vw;
+            max-height:90vh;
+            object-fit:contain;
+            border-radius:8px;
+            background:white;
+        "
+    >
+</div>
 </main>
 
 
