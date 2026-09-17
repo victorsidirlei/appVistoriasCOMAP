@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
+
     <meta charset="UTF-8">
 
     <meta
@@ -18,9 +20,15 @@
         content="yes"
     >
 
-    <title>Relatório Fotográfico</title>
+    <title>
+        Relatório Fotográfico
+    </title>
 
-    <link rel="manifest" href="manifest.json">
+    <link
+        rel="manifest"
+        href="manifest.json"
+    >
+
 
     <style>
 
@@ -28,421 +36,819 @@
             box-sizing: border-box;
         }
 
+
         body {
+
             margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f4f6f9;
-            color: #1f2937;
+
+            font-family:
+                Arial,
+                Helvetica,
+                sans-serif;
+
+            background:
+                #f4f6f9;
+
+            color:
+                #1f2937;
+
         }
+
 
         header {
-            background: #164477;
-            color: white;
-            padding: 16px 20px;
+
+            background:
+                #164477;
+
+            color:
+                white;
+
+            padding:
+                16px 20px;
+
         }
+
 
         header h1 {
-            margin: 0;
-            font-size: 20px;
+
+            margin:
+                0;
+
+            font-size:
+                20px;
+
         }
+
 
         header p {
-            margin: 4px 0 0;
-            font-size: 13px;
-            opacity: 0.85;
+
+            margin:
+                4px 0 0;
+
+            font-size:
+                13px;
+
+            opacity:
+                .85;
+
         }
+
 
         main {
-            width: 100%;
-            max-width: 760px;
-            margin: 0 auto;
-            padding: 24px 16px 100px;
+
+            width:
+                100%;
+
+            max-width:
+                760px;
+
+            margin:
+                auto;
+
+            padding:
+                24px 16px 100px;
+
         }
+
 
         .tela {
-            display: none;
+
+            display:
+                none;
+
         }
+
 
         .tela.ativa {
-            display: block;
+
+            display:
+                block;
+
         }
+
 
         h2 {
-            margin-top: 0;
-            font-size: 22px;
+
+            margin-top:
+                0;
+
+            font-size:
+                22px;
+
         }
+
+
+        h3 {
+
+            margin-top:
+                0;
+
+        }
+
 
         .subtitulo {
-            color: #6b7280;
-            margin-bottom: 24px;
+
+            color:
+                #6b7280;
+
+            margin-bottom:
+                24px;
+
         }
 
-        .card {
-            background: white;
-            border: 1px solid #dbe1e8;
-            border-radius: 12px;
-            padding: 18px;
-            margin-bottom: 14px;
+
+        .card,
+        .registro,
+        .foto-editor,
+        .revisao {
+
+            background:
+                white;
+
+            border:
+                1px solid #dbe1e8;
+
+            border-radius:
+                12px;
+
+            padding:
+                16px;
+
+            margin-bottom:
+                14px;
+
         }
+
 
         .botao {
-            width: 100%;
-            border: none;
-            border-radius: 10px;
-            padding: 15px 18px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
+
+            width:
+                100%;
+
+            border-radius:
+                10px;
+
+            padding:
+                14px 16px;
+
+            font-size:
+                16px;
+
+            font-weight:
+                bold;
+
+            cursor:
+                pointer;
+
+            margin-top:
+                10px;
+
+            border:
+                1px solid #164477;
+
         }
+
 
         .botao-principal {
-            background: #164477;
-            color: white;
+
+            background:
+                #164477;
+
+            color:
+                white;
+
         }
+
 
         .botao-secundario {
-            background: white;
-            color: #164477;
-            border: 1px solid #164477;
+
+            background:
+                white;
+
+            color:
+                #164477;
+
         }
+
 
         .botao-perigo {
-            background: #fff;
-            color: #b42318;
-            border: 1px solid #e5a5a0;
+
+            background:
+                white;
+
+            color:
+                #b42318;
+
+            border-color:
+                #e5a5a0;
+
         }
+
+
+        .botao-pequeno {
+
+            width:
+                auto;
+
+            padding:
+                8px 12px;
+
+            font-size:
+                14px;
+
+            margin-top:
+                0;
+
+        }
+
 
         label {
-            display: block;
-            margin-top: 16px;
-            margin-bottom: 6px;
-            font-weight: bold;
-            font-size: 14px;
+
+            display:
+                block;
+
+            margin:
+                16px 0 6px;
+
+            font-weight:
+                bold;
+
+            font-size:
+                14px;
+
         }
+
 
         input,
+        select,
         textarea {
-            width: 100%;
-            padding: 13px;
-            border: 1px solid #cfd6df;
-            border-radius: 8px;
-            font-size: 16px;
-            background: white;
+
+            width:
+                100%;
+
+            padding:
+                13px;
+
+            border:
+                1px solid #cfd6df;
+
+            border-radius:
+                8px;
+
+            font-size:
+                16px;
+
+            background:
+                white;
+
         }
 
+
         textarea {
-            min-height: 110px;
-            resize: vertical;
+
+            min-height:
+                120px;
+
+            resize:
+                vertical;
+
         }
+
 
         .topo-tela {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 22px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                12px;
+
+            margin-bottom:
+                22px;
+
         }
+
 
         .voltar {
-            border: none;
-            background: transparent;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 0;
+
+            border:
+                none;
+
+            background:
+                transparent;
+
+            font-size:
+                25px;
+
+            cursor:
+                pointer;
+
+            padding:
+                0;
+
         }
+
 
         .relatorio-titulo {
-            font-size: 20px;
-            font-weight: bold;
-            margin-bottom: 4px;
+
+            font-size:
+                20px;
+
+            font-weight:
+                bold;
+
         }
 
-        .relatorio-info {
-            color: #6b7280;
-            font-size: 14px;
+
+        .relatorio-info,
+        .meta {
+
+            color:
+                #6b7280;
+
+            font-size:
+                14px;
+
         }
+
 
         .vazio {
-            text-align: center;
-            padding: 50px 20px;
-            color: #7b8794;
+
+            text-align:
+                center;
+
+            padding:
+                40px 20px;
+
+            color:
+                #7b8794;
+
         }
 
-        .registro {
-            border: 1px solid #dbe1e8;
-            border-radius: 12px;
-            background: white;
-            padding: 16px;
-            margin-bottom: 12px;
-        }
 
         .registro-cabecalho {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
+
+            display:
+                flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
+                center;
+
+            gap:
+                10px;
+
         }
+
 
         .registro-numero {
-            font-weight: bold;
+
+            font-weight:
+                bold;
+
         }
+
 
         .tipo {
-            display: inline-block;
-            padding: 5px 9px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
+
+            display:
+                inline-block;
+
+            padding:
+                5px 9px;
+
+            border-radius:
+                20px;
+
+            font-size:
+                12px;
+
+            font-weight:
+                bold;
+
         }
+
 
         .tipo-concluida {
-            background: #e8f5e9;
-            color: #176b35;
+
+            background:
+                #e8f5e9;
+
+            color:
+                #176b35;
+
         }
+
 
         .tipo-pendencia {
-            background: #fff4d6;
-            color: #8a5a00;
+
+            background:
+                #fff4d6;
+
+            color:
+                #8a5a00;
+
         }
+
 
         .tipo-problema {
-            background: #fdecec;
-            color: #a52222;
+
+            background:
+                #fdecec;
+
+            color:
+                #a52222;
+
         }
+
 
         .registro-observacao {
-            white-space: pre-wrap;
-            line-height: 1.5;
-            color: #374151;
+
+            white-space:
+                pre-wrap;
+
+            line-height:
+                1.5;
+
+            margin-top:
+                10px;
+
         }
 
-        .botoes-final {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            border-top: 1px solid #dbe1e8;
-            padding: 10px 16px;
+
+        .acoes-registro {
+
+            display:
+                flex;
+
+            gap:
+                8px;
+
+            flex-wrap:
+                wrap;
+
+            margin-top:
+                12px;
+
         }
 
-        .botoes-final-interno {
-            max-width: 760px;
-            margin: 0 auto;
+
+        .acoes-registro .botao {
+
+            flex:
+                1;
+
+            min-width:
+                110px;
+
         }
 
-        @media (min-width: 700px) {
 
-            .botoes-final {
-                position: static;
-                background: transparent;
-                border: none;
-                padding: 10px 0;
+        .lista-fotos {
+
+            display:
+                grid;
+
+            grid-template-columns:
+                repeat(
+                    2,
+                    minmax(
+                        0,
+                        1fr
+                    )
+                );
+
+            gap:
+                10px;
+
+            margin-top:
+                12px;
+
+        }
+
+
+        .foto-editor {
+
+            padding:
+                8px;
+
+            margin:
+                0;
+
+        }
+
+
+        .foto-editor img {
+
+            width:
+                100%;
+
+            aspect-ratio:
+                1 / 1;
+
+            object-fit:
+                cover;
+
+            border-radius:
+                8px;
+
+            cursor:
+                zoom-in;
+
+        }
+
+
+        .foto-acoes {
+
+            display:
+                flex;
+
+            gap:
+                6px;
+
+        }
+
+
+        .foto-acoes button {
+
+            flex:
+                1;
+
+            padding:
+                7px;
+
+            border-radius:
+                7px;
+
+            border:
+                1px solid #ccd4dd;
+
+            background:
+                white;
+
+            cursor:
+                pointer;
+
+        }
+
+
+        .status {
+
+            display:
+                inline-block;
+
+            padding:
+                5px 9px;
+
+            border-radius:
+                20px;
+
+            font-size:
+                12px;
+
+            font-weight:
+                bold;
+
+            background:
+                #fff4d6;
+
+            color:
+                #8a5a00;
+
+        }
+
+
+        .status.concluido {
+
+            background:
+                #e8f5e9;
+
+            color:
+                #176b35;
+
+        }
+
+
+        .revisao-foto {
+
+            width:
+                100%;
+
+            border-radius:
+                8px;
+
+            margin-top:
+                8px;
+
+            cursor:
+                zoom-in;
+
+        }
+
+
+        .aviso-gps {
+
+            background:
+                #fff4d6;
+
+            border:
+                1px solid #e8c866;
+
+            border-radius:
+                8px;
+
+            padding:
+                10px;
+
+            font-size:
+                13px;
+
+            margin:
+                10px 0;
+
+        }
+
+
+        .salvo {
+
+            min-height:
+                20px;
+
+            color:
+                #176b35;
+
+            font-size:
+                13px;
+
+            margin-top:
+                6px;
+
+        }
+
+
+        .barra-final {
+
+            position:
+                fixed;
+
+            left:
+                0;
+
+            right:
+                0;
+
+            bottom:
+                0;
+
+            background:
+                white;
+
+            border-top:
+                1px solid #dbe1e8;
+
+            padding:
+                10px 16px;
+
+        }
+
+
+        .modal {
+
+            position:
+                fixed;
+
+            inset:
+                0;
+
+            background:
+                rgba(
+                    0,
+                    0,
+                    0,
+                    .75
+                );
+
+            display:
+                none;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            padding:
+                20px;
+
+            z-index:
+                2000;
+
+        }
+
+
+        .modal.ativo {
+
+            display:
+                flex;
+
+        }
+
+
+        .modal img {
+
+            max-width:
+                95vw;
+
+            max-height:
+                90vh;
+
+            object-fit:
+                contain;
+
+            background:
+                white;
+
+            border-radius:
+                8px;
+
+        }
+
+
+        @media (
+            min-width: 700px
+        ) {
+
+            .barra-final {
+
+                position:
+                    static;
+
+                background:
+                    transparent;
+
+                border:
+                    none;
+
+                padding:
+                    10px 0;
+
             }
 
-            .botoes-final-interno {
-                max-width: none;
-            }
-
         }
-/* ==================================================
-   FOTOS - MINIATURAS
-   ================================================== */
 
-.area-fotos {
-    width: 100%;
-}
-
-.botoes-fotos {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-.lista-fotos {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    width: 100%;
-}
-
-.foto-item {
-    position: relative;
-    width: 140px;
-    height: 140px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #f5f5f5;
-}
-
-.miniatura-foto {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.botao-remover-foto {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-
-    width: 28px;
-    height: 28px;
-
-    border: none;
-    border-radius: 50%;
-
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-
-    font-size: 16px;
-    font-weight: bold;
-
-    cursor: pointer;
-}
-/* ==================================================
-   MODAL DE VISUALIZAÇÃO DO REGISTRO
-   ================================================== */
-
-.modal-registro {
-    position: fixed;
-    inset: 0;
-
-    background: rgba(0, 0, 0, 0.55);
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    padding: 20px;
-
-    z-index: 1000;
-}
-
-
-.modal-conteudo {
-    width: 100%;
-    max-width: 700px;
-    max-height: 90vh;
-
-    overflow-y: auto;
-
-    background: white;
-
-    border-radius: 12px;
-
-    padding: 20px;
-
-    box-sizing: border-box;
-}
-
-
-.modal-cabecalho {
-    display: flex;
-
-    justify-content: space-between;
-    align-items: center;
-
-    margin-bottom: 15px;
-}
-
-
-.modal-cabecalho h3 {
-    margin: 0;
-}
-
-
-.botao-fechar {
-    width: 36px;
-    height: 36px;
-
-    border: none;
-    border-radius: 50%;
-
-    background: #eee;
-
-    font-size: 18px;
-
-    cursor: pointer;
-}
-
-
-.modal-tipo {
-    margin-bottom: 20px;
-}
-
-
-.modal-secao {
-    margin-bottom: 20px;
-}
-
-
-.modal-secao strong {
-    display: block;
-
-    margin-bottom: 8px;
-}
-
-
-.modal-secao p {
-    margin: 0;
-
-    white-space: pre-wrap;
-}
-
-
-.modal-fotos {
-    display: flex;
-
-    flex-wrap: wrap;
-
-    gap: 12px;
-}
-
-
-.modal-foto {
-    width: 180px;
-    height: 180px;
-
-    object-fit: contain;
-
-    background: #f5f5f5;
-
-    border: 1px solid #ddd;
-    border-radius: 8px;
-
-    cursor: pointer;
-}
     </style>
+
 </head>
+
 
 <body>
 
+
 <header>
-    <h1>Relatório Fotográfico</h1>
-    <p>Vistorias</p>
+
+    <h1>
+        Relatório Fotográfico
+    </h1>
+
+    <p>
+        Aplicativo de vistoria
+    </p>
+
 </header>
+
 
 <main>
 
-    <!-- ================================================== -->
-    <!-- TELA INICIAL -->
-    <!-- ================================================== -->
 
-    <section id="tela-inicio" class="tela ativa">
+    <!-- ======================================================
+         TELA INICIAL
+         ====================================================== -->
+
+    <section
+        id="tela-inicio"
+        class="tela ativa"
+    >
 
         <div class="card">
 
-            <h2>Novo relatório</h2>
+            <h2>
+                Novo relatório
+            </h2>
 
             <p class="subtitulo">
-                Registre atividades, pendências e problemas
-                com fotos e observações.
+
+                Registre atividades,
+                pendências e problemas
+                com fotos, observações
+                e localização.
+
             </p>
+
 
             <button
                 id="btn-novo-relatorio"
@@ -453,14 +859,22 @@
 
         </div>
 
+
         <div class="card">
 
-            <h2>Relatórios anteriores</h2>
+            <h2>
+                Relatórios anteriores
+            </h2>
 
-            <div id="lista-relatorios">
+
+            <div
+                id="lista-relatorios"
+            >
 
                 <div class="vazio">
+
                     Nenhum relatório salvo.
+
                 </div>
 
             </div>
@@ -470,11 +884,14 @@
     </section>
 
 
-    <!-- ================================================== -->
-    <!-- TELA NOVO RELATÓRIO -->
-    <!-- ================================================== -->
+    <!-- ======================================================
+         NOVO RELATÓRIO
+         ====================================================== -->
 
-    <section id="tela-novo" class="tela">
+    <section
+        id="tela-novo"
+        class="tela"
+    >
 
         <div class="topo-tela">
 
@@ -485,13 +902,19 @@
                 ←
             </button>
 
-            <h2>Novo relatório</h2>
+            <h2>
+                Novo relatório
+            </h2>
 
         </div>
 
+
         <div class="card">
 
-            <label for="titulo">
+
+            <label
+                for="titulo"
+            >
                 Título do relatório
             </label>
 
@@ -502,18 +925,42 @@
             >
 
 
-            <label for="local">
-                Local
+            <label
+                for="cidade"
+            >
+                Cidade
             </label>
 
-            <input
-                id="local"
-                type="text"
-                placeholder="Ex.: Belo Horizonte - CEOP"
+            <select id="cidade">
+
+                <option value="">
+                    Selecione a cidade
+                </option>
+
+            </select>
+
+
+            <label
+                for="predio"
+            >
+                Prédio / unidade
+            </label>
+
+            <select
+                id="predio"
+                disabled
             >
 
+                <option value="">
+                    Selecione primeiro a cidade
+                </option>
 
-            <label for="responsavel">
+            </select>
+
+
+            <label
+                for="responsavel"
+            >
                 Responsável
             </label>
 
@@ -524,7 +971,9 @@
             >
 
 
-            <label for="data">
+            <label
+                for="data"
+            >
                 Data
             </label>
 
@@ -534,6 +983,23 @@
             >
 
 
+            <!--
+                DISCIPLINA
+
+                Reservada no código para futura implementação.
+
+                Exemplos:
+                - Elétrica
+                - Civil
+                - Hidráulica
+                - Ar-condicionado
+                - Lógica
+                - Segurança
+
+                Não aparece nesta versão.
+            -->
+
+
             <button
                 id="btn-iniciar-relatorio"
                 class="botao botao-principal"
@@ -541,16 +1007,20 @@
                 Iniciar relatório
             </button>
 
+
         </div>
 
     </section>
 
 
-    <!-- ================================================== -->
-    <!-- TELA DO RELATÓRIO -->
-    <!-- ================================================== -->
+    <!-- ======================================================
+         RELATÓRIO
+         ====================================================== -->
 
-    <section id="tela-relatorio" class="tela">
+    <section
+        id="tela-relatorio"
+        class="tela"
+    >
 
         <div class="topo-tela">
 
@@ -561,6 +1031,7 @@
                 ←
             </button>
 
+
             <div>
 
                 <div
@@ -569,6 +1040,7 @@
                 >
                     Relatório
                 </div>
+
 
                 <div
                     id="relatorio-info"
@@ -581,16 +1053,20 @@
         </div>
 
 
-        <div id="lista-registros">
+        <div
+            id="status-relatorio"
+        >
+        </div>
 
-            <div class="vazio">
-                Nenhum registro adicionado.
-            </div>
 
+        <div
+            id="lista-registros"
+        >
         </div>
 
 
         <div class="card">
+
 
             <button
                 id="btn-novo-registro"
@@ -599,10 +1075,14 @@
                 + Novo registro
             </button>
 
-        </div>
 
+            <button
+                id="btn-revisar"
+                class="botao botao-secundario"
+            >
+                ✓ Revisar relatório
+            </button>
 
-        <div class="card">
 
             <button
                 id="btn-gerar-pdf"
@@ -611,95 +1091,20 @@
                 📄 Gerar PDF
             </button>
 
-        </div>
-<!-- ================================================== -->
-<!-- VISUALIZAÇÃO DO REGISTRO -->
-<!-- ================================================== -->
-
-<div
-    id="modal-registro"
-    class="modal-registro"
-    style="display:none;"
->
-
-    <div class="modal-conteudo">
-
-        <div class="modal-cabecalho">
-
-            <h3 id="modal-registro-titulo">
-                Registro
-            </h3>
-
-            <button
-                type="button"
-                id="btn-fechar-modal-registro"
-                class="botao-fechar"
-            >
-                ✕
-            </button>
 
         </div>
 
-
-        <div
-            id="modal-registro-tipo"
-            class="modal-tipo"
-        >
-        </div>
+    </section>
 
 
-        <div class="modal-secao">
+    <!-- ======================================================
+         NOVO / EDITAR REGISTRO
+         ====================================================== -->
 
-            <strong>Observação</strong>
-
-            <p
-                id="modal-registro-observacao"
-            >
-            </p>
-
-        </div>
-
-
-        <div class="modal-secao">
-
-            <strong>Fotos</strong>
-
-            <div
-                id="modal-registro-fotos"
-                class="modal-fotos"
-            >
-            </div>
-
-        </div>
-        <button
-            type="button"
-            id="btn-editar-registro"
-            class="botao botao-principal"
-        >
-            ✏️ Editar registro
-        </button>
-
-
-        <button
-            type="button"
-            id="btn-fechar-modal-registro-rodape"
-            class="botao botao-secundario"
-        >
-            Fechar
-        </button>
-
-    </div>
-
-</div>
-
-</section>
-
-
-    <!-- ================================================== -->
-    <!-- TELA NOVO REGISTRO -->
-    <!-- ================================================== -->
-
-    <section id="tela-registro" class="tela">
+    <section
+        id="tela-registro"
+        class="tela"
+    >
 
         <div class="topo-tela">
 
@@ -710,7 +1115,12 @@
                 ←
             </button>
 
-            <h2>Novo registro</h2>
+
+            <h2
+                id="titulo-tela-registro"
+            >
+                Novo registro
+            </h2>
 
         </div>
 
@@ -718,7 +1128,9 @@
         <div class="card">
 
             <p>
-                O que você deseja registrar?
+                <strong>
+                    O que você deseja registrar?
+                </strong>
             </p>
 
 
@@ -754,75 +1166,98 @@
             style="display:none;"
         >
 
-            <h3 id="titulo-tipo-registro">
+            <h3
+                id="titulo-tipo-registro"
+            >
                 Registro
             </h3>
 
 
-            <label for="observacao">
-                Observação
+            <label
+                for="observacao"
+            >
+                Observação do registro
             </label>
+
 
             <textarea
                 id="observacao"
-                placeholder="Descreva o que foi identificado ou realizado..."
+                placeholder="Descreva livremente o que foi identificado ou realizado. Esta observação pode se aplicar a todas as fotos deste registro."
             ></textarea>
 
 
-            <p>
-    <strong>Fotos</strong>
-</p>
+            <div class="area-fotos">
 
-<div class="area-fotos">
-
-    <div class="botoes-fotos">
-
-        <button
-            type="button"
-            id="btn-tirar-foto"
-            class="botao botao-secundario"
-        >
-            📷 Tirar foto
-        </button>
-
-        <button
-            type="button"
-            id="btn-escolher-foto"
-            class="botao botao-secundario"
-        >
-            🖼️ Galeria
-        </button>
-
-    </div>
+                <p>
+                    <strong>
+                        Fotos
+                    </strong>
+                </p>
 
 
-    <!-- Câmera -->
-    <input
-        type="file"
-        id="input-camera"
-        accept="image/*"
-        capture="environment"
-        style="display:none;"
-    >
+                <div class="aviso-gps">
+
+                    A localização GPS é obrigatória
+                    para cada fotografia.
+
+                    A data, hora e localização
+                    também serão gravadas na própria
+                    fotografia.
+
+                </div>
 
 
-    <!-- Galeria -->
-    <input
-        type="file"
-        id="input-galeria"
-        accept="image/*"
-        multiple
-        style="display:none;"
-    >
+                <button
+                    id="btn-tirar-foto"
+                    type="button"
+                    class="botao botao-secundario"
+                >
+                    📷 Tirar foto
+                </button>
 
 
-    <!-- Miniaturas das fotos selecionadas -->
-    <div
-        id="lista-fotos"
-        class="lista-fotos"
-    ></div>
+                <button
+                    id="btn-escolher-foto"
+                    type="button"
+                    class="botao botao-secundario"
+                >
+                    🖼️ Galeria
+                </button>
 
-</div>
+
+                <input
+                    id="input-camera"
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    hidden
+                >
+
+
+                <input
+                    id="input-galeria"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    hidden
+                >
+
+
+                <div
+                    id="lista-fotos"
+                    class="lista-fotos"
+                >
+                </div>
+
+
+            </div>
+
+
+            <div
+                id="salvamento-status"
+                class="salvo"
+            >
+            </div>
 
 
             <button
@@ -831,87 +1266,98 @@
             >
                 Adicionar ao relatório
             </button>
-<button
-    type="button"
-    id="btn-excluir-registro-edicao"
-    class="botao botao-secundario"
-    style="display:none;"
->
-    🗑️ Excluir registro
-</button>
+
+
+            <button
+                id="btn-excluir-registro"
+                class="botao botao-perigo"
+                style="display:none;"
+            >
+                🗑️ Excluir registro
+            </button>
+
+
         </div>
 
     </section>
 
-    <!-- ================================================== -->
-<!-- FOTO AMPLIADA -->
-<!-- ================================================== -->
+
+    <!-- ======================================================
+         REVISÃO
+         ====================================================== -->
+
+    <section
+        id="tela-revisao"
+        class="tela"
+    >
+
+        <div class="topo-tela">
+
+            <button
+                id="btn-voltar-revisao"
+                class="voltar"
+            >
+                ←
+            </button>
+
+            <h2>
+                Revisão
+            </h2>
+
+        </div>
+
+
+        <div
+            id="conteudo-revisao"
+        >
+        </div>
+
+
+        <div class="card">
+
+            <button
+                id="btn-concluir"
+                class="botao botao-principal"
+            >
+                ✓ Concluir relatório
+            </button>
+
+        </div>
+
+    </section>
+
+
+</main>
+
+
+<!-- ==========================================================
+     FOTO AMPLIADA
+     ========================================================== -->
 
 <div
-    id="modal-foto-ampliada"
-    style="
-        display:none;
-        position:fixed;
-        inset:0;
-        background:rgba(0,0,0,0.85);
-        z-index:2000;
-        align-items:center;
-        justify-content:center;
-        padding:20px;
-    "
+    id="modal-foto"
+    class="modal"
 >
-    <button
-        type="button"
-        id="btn-fechar-foto-ampliada"
-        style="
-            position:absolute;
-            top:15px;
-            right:15px;
-            width:42px;
-            height:42px;
-            border:none;
-            border-radius:50%;
-            background:white;
-            color:#164477;
-            font-size:22px;
-            font-weight:bold;
-            cursor:pointer;
-            z-index:2001;
-        "
-    >
-        ✕
-    </button>
 
     <img
         id="foto-ampliada"
         src=""
         alt="Foto ampliada"
-        style="
-            max-width:95vw;
-            max-height:90vh;
-            object-fit:contain;
-            border-radius:8px;
-            background:white;
-        "
     >
+
 </div>
-</main>
 
 
-<script src="js/db.js"></script>
-<script src="js/app.js?v=1.0.1"></script>
-<script>
-    if ("serviceWorker" in navigator) {
-        window.addEventListener("load", () => {
-            navigator.serviceWorker.register("./service-worker.js")
-                .then(() => {
-                    console.log("Service Worker registrado com sucesso.");
-                })
-                .catch((erro) => {
-                    console.error("Erro ao registrar Service Worker:", erro);
-                });
-        });
-    }
-</script>
+<script
+    src="js/db.js"
+></script>
+
+
+<script
+    src="js/app.js?v=1.1.0"
+></script>
+
+
 </body>
+
 </html>

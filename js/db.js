@@ -1,264 +1,535 @@
 // ============================================================
-// APP VISTORIAS - V1
-// Banco local simplificado
+// DB.JS
+// CAMADA DE DADOS
+//
+// Relatório Fotográfico V1.1
+//
+// Responsabilidade:
+// - abrir IndexedDB
+// - salvar
+// - buscar
+// - listar
+// - excluir
+//
+// O banco continua sendo:
+//     appVistoriasV1
+//
+// A versão passa de 1 para 2.
 // ============================================================
 
+
 const DB_CONFIG = {
+
     nome: "appVistoriasV1",
-    versao: 1
+
+    versao: 2
+
 };
 
+
+// ============================================================
+// ESTRUTURA DOS STORES
+// ============================================================
+
 const DB_STORES = {
+
+    // --------------------------------------------------------
+    // RELATÓRIOS
+    // --------------------------------------------------------
+
     relatorios: {
+
         keyPath: "id",
+
         indexes: [
+
             {
                 name: "data",
                 keyPath: "data",
-                options: { unique: false }
+                options: {
+                    unique: false
+                }
             },
+
             {
                 name: "status",
                 keyPath: "status",
-                options: { unique: false }
+                options: {
+                    unique: false
+                }
+            },
+
+            {
+                name: "cidade",
+                keyPath: "cidade",
+                options: {
+                    unique: false
+                }
+            },
+
+            {
+                name: "predio",
+                keyPath: "predio",
+                options: {
+                    unique: false
+                }
             }
+
         ]
+
     },
 
+
+    // --------------------------------------------------------
+    // REGISTROS
+    // --------------------------------------------------------
+
     registros: {
+
         keyPath: "id",
+
         indexes: [
+
             {
                 name: "relatorioId",
                 keyPath: "relatorioId",
-                options: { unique: false }
+                options: {
+                    unique: false
+                }
             },
+
             {
                 name: "tipo",
                 keyPath: "tipo",
-                options: { unique: false }
+                options: {
+                    unique: false
+                }
             },
+
             {
                 name: "ordem",
                 keyPath: "ordem",
-                options: { unique: false }
+                options: {
+                    unique: false
+                }
             }
+
         ]
+
+    },
+
+
+    // --------------------------------------------------------
+    // ARQUIVOS
+    //
+    // Ainda não utilizado pela interface.
+    //
+    // O store já fica reservado para uma futura evolução.
+    // --------------------------------------------------------
+
+    arquivos: {
+
+        keyPath: "id",
+
+        indexes: [
+
+            {
+                name: "relatorioId",
+                keyPath: "relatorioId",
+                options: {
+                    unique: false
+                }
+            },
+
+            {
+                name: "tipo",
+                keyPath: "tipo",
+                options: {
+                    unique: false
+                }
+            }
+
+        ]
+
     }
+
 };
 
-// ------------------------------------------------------------
-// Gerar ID único
-// ------------------------------------------------------------
+
+// ============================================================
+// GERADOR DE ID
+// ============================================================
 
 function gerarId() {
-    if (window.crypto && crypto.randomUUID) {
+
+    if (
+        window.crypto &&
+        crypto.randomUUID
+    ) {
+
         return crypto.randomUUID();
+
     }
 
-    return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    return (
+
+        Date.now().toString(36) +
+
+        Math.random()
+            .toString(36)
+            .slice(2)
+
+    );
+
 }
 
-// ------------------------------------------------------------
-// Abrir / criar banco
-// ------------------------------------------------------------
 
-function abrirBancoV1() {
-    return new Promise((resolve, reject) => {
+// ============================================================
+// ABRIR BANCO
+// ============================================================
 
-        const request = indexedDB.open(
-            DB_CONFIG.nome,
-            DB_CONFIG.versao
-        );
+function abrirBanco() {
 
-        request.onupgradeneeded = (event) => {
+    return new Promise(
+        (resolve, reject) => {
 
-            const db = event.target.result;
+            const request =
+                indexedDB.open(
+                    DB_CONFIG.nome,
+                    DB_CONFIG.versao
+                );
 
-            for (const [storeName, config] of Object.entries(DB_STORES)) {
 
-                if (!db.objectStoreNames.contains(storeName)) {
+            request.onupgradeneeded =
+                event => {
 
-                    const store = db.createObjectStore(
-                        storeName,
-                        {
-                            keyPath: config.keyPath
+                    const db =
+                        event.target.result;
+
+                    Object.entries(
+                        DB_STORES
+                    ).forEach(
+                        ([nomeStore, configuracao]) => {
+
+                            let store;
+
+
+                            // ------------------------------------------------
+                            // Cria store caso ainda não exista.
+                            // ------------------------------------------------
+
+                            if (
+                                !db.objectStoreNames
+                                    .contains(nomeStore)
+                            ) {
+
+                                store =
+                                    db.createObjectStore(
+                                        nomeStore,
+                                        {
+                                            keyPath:
+                                                configuracao.keyPath
+                                        }
+                                    );
+
+                            } else {
+
+                                store =
+                                    event.target.transaction
+                                        .objectStore(
+                                            nomeStore
+                                        );
+
+                            }
+
+
+                            // ------------------------------------------------
+                            // Cria índices que ainda não existem.
+                            // ------------------------------------------------
+
+                            configuracao.indexes
+                                .forEach(
+                                    indice => {
+
+                                        if (
+                                            !store.indexNames
+                                                .contains(
+                                                    indice.name
+                                                )
+                                        ) {
+
+                                            store.createIndex(
+                                                indice.name,
+                                                indice.keyPath,
+                                                indice.options
+                                            );
+
+                                        }
+
+                                    }
+                                );
+
                         }
                     );
 
-                    for (const index of config.indexes) {
+                };
 
-                        store.createIndex(
-                            index.name,
-                            index.keyPath,
-                            index.options
-                        );
-                    }
-                }
-            }
-        };
 
-        request.onsuccess = () => {
+            request.onsuccess = () => {
 
-            const db = request.result;
+                const db =
+                    request.result;
 
-            db.onversionchange = () => {
-                db.close();
+                db.onversionchange =
+                    () => db.close();
+
+                resolve(db);
+
             };
 
-            resolve(db);
-        };
 
-        request.onerror = () => {
-            reject(request.error);
-        };
-    });
+            request.onerror = () => {
+
+                reject(
+                    request.error
+                );
+
+            };
+
+        }
+    );
+
 }
 
-// ------------------------------------------------------------
-// Salvar registro
-// ------------------------------------------------------------
 
-async function salvarRegistro(storeName, dados) {
+// ============================================================
+// SALVAR
+// ============================================================
 
-    const db = await abrirBancoV1();
+async function salvar(
+    storeName,
+    objeto
+) {
 
-    const registro = {
-        ...dados,
-        id: dados.id || gerarId()
-    };
+    const db =
+        await abrirBanco();
 
-    return new Promise((resolve, reject) => {
 
-        const transaction = db.transaction(
-            storeName,
-            "readwrite"
-        );
+    return new Promise(
+        (resolve, reject) => {
 
-        const store = transaction.objectStore(storeName);
+            const transaction =
+                db.transaction(
+                    storeName,
+                    "readwrite"
+                );
 
-        const request = store.put(registro);
 
-        request.onsuccess = () => {
-            resolve(registro);
-        };
+            transaction
+                .objectStore(storeName)
+                .put(objeto);
 
-        request.onerror = () => {
-            reject(request.error);
-        };
 
-        transaction.oncomplete = () => {
-            db.close();
-        };
+            transaction.oncomplete =
+                () => {
 
-        transaction.onerror = () => {
-            reject(transaction.error);
-        };
-    });
+                    db.close();
+
+                    resolve(objeto);
+
+                };
+
+
+            transaction.onerror =
+                () => {
+
+                    db.close();
+
+                    reject(
+                        transaction.error
+                    );
+
+                };
+
+        }
+    );
+
 }
 
-// ------------------------------------------------------------
-// Buscar registro por ID
-// ------------------------------------------------------------
 
-async function buscarRegistro(storeName, id) {
+// ============================================================
+// BUSCAR
+// ============================================================
 
-    const db = await abrirBancoV1();
+async function buscar(
+    storeName,
+    id
+) {
 
-    return new Promise((resolve, reject) => {
+    const db =
+        await abrirBanco();
 
-        const transaction = db.transaction(
-            storeName,
-            "readonly"
-        );
 
-        const store = transaction.objectStore(storeName);
+    return new Promise(
+        (resolve, reject) => {
 
-        const request = store.get(id);
+            const request =
+                db
+                    .transaction(
+                        storeName,
+                        "readonly"
+                    )
+                    .objectStore(
+                        storeName
+                    )
+                    .get(id);
 
-        request.onsuccess = () => {
-            resolve(request.result);
-        };
 
-        request.onerror = () => {
-            reject(request.error);
-        };
+            request.onsuccess =
+                () => {
 
-        transaction.oncomplete = () => {
-            db.close();
-        };
-    });
+                    db.close();
+
+                    resolve(
+                        request.result ||
+                        null
+                    );
+
+                };
+
+
+            request.onerror =
+                () => {
+
+                    db.close();
+
+                    reject(
+                        request.error
+                    );
+
+                };
+
+        }
+    );
+
 }
 
-// ------------------------------------------------------------
-// Listar registros
-// ------------------------------------------------------------
 
-async function listarRegistros(storeName) {
+// ============================================================
+// LISTAR
+// ============================================================
 
-    const db = await abrirBancoV1();
+async function listar(
+    storeName
+) {
 
-    return new Promise((resolve, reject) => {
+    const db =
+        await abrirBanco();
 
-        const transaction = db.transaction(
-            storeName,
-            "readonly"
-        );
 
-        const store = transaction.objectStore(storeName);
+    return new Promise(
+        (resolve, reject) => {
 
-        const request = store.getAll();
+            const request =
+                db
+                    .transaction(
+                        storeName,
+                        "readonly"
+                    )
+                    .objectStore(
+                        storeName
+                    )
+                    .getAll();
 
-        request.onsuccess = () => {
-            resolve(request.result);
-        };
 
-        request.onerror = () => {
-            reject(request.error);
-        };
+            request.onsuccess =
+                () => {
 
-        transaction.oncomplete = () => {
-            db.close();
-        };
-    });
+                    db.close();
+
+                    resolve(
+                        request.result ||
+                        []
+                    );
+
+                };
+
+
+            request.onerror =
+                () => {
+
+                    db.close();
+
+                    reject(
+                        request.error
+                    );
+
+                };
+
+        }
+    );
+
 }
 
-// ------------------------------------------------------------
-// Excluir registro
-// ------------------------------------------------------------
 
-async function excluirRegistro(storeName, id) {
+// ============================================================
+// EXCLUIR
+// ============================================================
 
-    const db = await abrirBancoV1();
+async function excluir(
+    storeName,
+    id
+) {
 
-    return new Promise((resolve, reject) => {
+    const db =
+        await abrirBanco();
 
-        const transaction = db.transaction(
-            storeName,
-            "readwrite"
-        );
 
-        const store = transaction.objectStore(storeName);
+    return new Promise(
+        (resolve, reject) => {
 
-        const request = store.delete(id);
+            const transaction =
+                db.transaction(
+                    storeName,
+                    "readwrite"
+                );
 
-        request.onsuccess = () => {
-            resolve(true);
-        };
 
-        request.onerror = () => {
-            reject(request.error);
-        };
+            transaction
+                .objectStore(storeName)
+                .delete(id);
 
-        transaction.oncomplete = () => {
-            db.close();
-        };
-    });
+
+            transaction.oncomplete =
+                () => {
+
+                    db.close();
+
+                    resolve();
+
+                };
+
+
+            transaction.onerror =
+                () => {
+
+                    db.close();
+
+                    reject(
+                        transaction.error
+                    );
+
+                };
+
+        }
+    );
+
 }
 
-// ------------------------------------------------------------
-// API pública da V1
-// ------------------------------------------------------------
+
+// ============================================================
+// API PÚBLICA
+// ============================================================
 
 window.AppVistoriasDB = {
 
@@ -266,19 +537,16 @@ window.AppVistoriasDB = {
 
     stores: DB_STORES,
 
-    abrir: abrirBancoV1,
+    abrir: abrirBanco,
 
     gerarId,
 
-    salvar: salvarRegistro,
+    salvar,
 
-    buscar: buscarRegistro,
+    buscar,
 
-    listar: listarRegistros,
+    listar,
 
-    excluir: excluirRegistro
+    excluir
+
 };
-
-console.log(
-    `Banco V1 carregado: ${DB_CONFIG.nome} v${DB_CONFIG.versao}`
-);

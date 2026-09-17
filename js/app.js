@@ -1,250 +1,685 @@
 // ============================================================
-// APP VISTORIAS - V1
-// Aplicativo de Relatório Fotográfico
+// APP.JS
+// RELATÓRIO FOTOGRÁFICO V1.1
 // ============================================================
+//
+// Principais recursos:
+// - relatórios
+// - cidade/prédio
+// - registros categorizados
+// - observação livre por registro
+// - fotos
+// - compressão
+// - miniaturas
+// - GPS obrigatório
+// - carimbo de data/hora + GPS
+// - salvamento automático
+// - reordenação
+// - revisão
+// - PDF/ impressão
+//
+// Reservado:
+// - disciplina
+// - sincronização
+// - Firebase
+// - retificação
+//
+// ============================================================
+
 
 const APP_CONFIG = {
-    nome: "Relatório Fotográfico",
-    versao: "1.0.0"
-};
 
-console.log(
-    `${APP_CONFIG.nome} - versão ${APP_CONFIG.versao}`
-);
+    nome:
+        "Relatório Fotográfico",
+
+    versao:
+        "1.1.0"
+
+};
 
 
 // ============================================================
-// ESTADO DA APLICAÇÃO
+// 1. CONFIGURAÇÕES FUTURAS
+// ============================================================
+
+
+// ------------------------------------------------------------
+// DISCIPLINAS
+//
+// A disciplina NÃO aparece na interface nesta versão.
+//
+// Quando decidirmos ativá-la, basta criar a seleção na tela
+// utilizando esta lista.
+//
+// ------------------------------------------------------------
+
+const DISCIPLINAS = [
+
+    "Elétrica",
+
+    "Civil",
+
+    "Hidráulica",
+
+    "Ar-condicionado",
+
+    "Lógica",
+
+    "Segurança",
+
+    "Outros"
+
+];
+
+
+// ------------------------------------------------------------
+// CATÁLOGO DE CIDADES / PRÉDIOS
+//
+// Este é o ponto principal para cadastrar novos locais.
+//
+// Estrutura:
+//
+// cidade:
+//     [
+//         prédio,
+//         prédio
+//     ]
+//
+// ------------------------------------------------------------
+
+const CATALOGO_LOCAIS = {
+
+    "Belo Horizonte": [
+
+        "CEOP"
+
+    ],
+
+
+    "Uberlândia": [
+
+        "Prédio principal"
+
+    ],
+
+
+    "Contagem": [
+
+        "Unidade principal"
+
+    ]
+
+};
+
+
+// ============================================================
+// 2. BACKEND FUTURO
+// ============================================================
+//
+// NÃO ATIVAR AGORA.
+//
+// Quando Firebase/sincronização forem implementados,
+// concentrar a integração aqui.
+//
+// ------------------------------------------------------------
+//
+// async function sincronizarRelatorio(relatorio) {
+//
+// }
+//
+// async function enviarFilaOffline() {
+//
+// }
+//
+// async function retificarRelatorio(id) {
+//
+// }
+//
+// ============================================================
+
+
+// ============================================================
+// 3. ESTADO DA APLICAÇÃO
 // ============================================================
 
 let relatorioAtual = null;
+
 let tipoRegistroAtual = null;
 
+let registroEmEdicao = null;
+
+let fotosTemporarias = [];
+
+let autosaveTimer = null;
+
 
 // ============================================================
-// 1. UTILITÁRIOS
+// 4. UTILITÁRIOS
 // ============================================================
 
-function mostrarTela(id) {
+function el(id) {
 
-    document.querySelectorAll(".tela").forEach(tela => {
-        tela.classList.remove("ativa");
-    });
+    return document.getElementById(id);
 
-    document
-        .getElementById(id)
-        .classList.add("ativa");
+}
 
-    window.scrollTo(0, 0);
+
+function aviso(mensagem) {
+
+    alert(mensagem);
+
 }
 
 
 function dataHoje() {
 
-    const agora = new Date();
+    const agora =
+        new Date();
 
-    const ano = agora.getFullYear();
+    return [
 
-    const mes = String(
-        agora.getMonth() + 1
-    ).padStart(2, "0");
+        agora.getFullYear(),
 
-    const dia = String(
-        agora.getDate()
-    ).padStart(2, "0");
+        String(
+            agora.getMonth() + 1
+        ).padStart(2, "0"),
 
-    return `${ano}-${mes}-${dia}`;
+        String(
+            agora.getDate()
+        ).padStart(2, "0")
+
+    ].join("-");
+
 }
 
 
 function formatarData(data) {
 
     if (!data) {
+
         return "";
+
     }
 
-    const partes = data.split("-");
+    const partes =
+        data.split("-");
 
-    if (partes.length !== 3) {
+    if (
+        partes.length !== 3
+    ) {
+
         return data;
+
     }
 
-    return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    return (
+
+        `${partes[2]}/` +
+        `${partes[1]}/` +
+        `${partes[0]}`
+
+    );
+
 }
 
 
 function escaparHTML(valor) {
 
-    return String(valor)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+    return String(valor ?? "")
+
+        .replaceAll(
+            "&",
+            "&amp;"
+        )
+
+        .replaceAll(
+            "<",
+            "&lt;"
+        )
+
+        .replaceAll(
+            ">",
+            "&gt;"
+        )
+
+        .replaceAll(
+            '"',
+            "&quot;"
+        )
+
+        .replaceAll(
+            "'",
+            "&#039;"
+        );
+
+}
+
+
+function mostrarTela(id) {
+
+    document
+        .querySelectorAll(".tela")
+        .forEach(
+            tela =>
+                tela.classList.remove(
+                    "ativa"
+                )
+        );
+
+    el(id)
+        .classList.add(
+            "ativa"
+        );
+
+    window.scrollTo(
+        0,
+        0
+    );
+
 }
 
 
 // ============================================================
-// 2. RELATÓRIOS
+// 5. CATÁLOGO DE LOCAIS
+// ============================================================
+
+function carregarCatalogoLocais() {
+
+    const cidade =
+        el("cidade");
+
+    const predio =
+        el("predio");
+
+
+    cidade.innerHTML =
+        `<option value="">
+            Selecione a cidade
+        </option>`;
+
+
+    Object.keys(
+        CATALOGO_LOCAIS
+    )
+        .sort()
+        .forEach(
+            nomeCidade => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    nomeCidade;
+
+                option.textContent =
+                    nomeCidade;
+
+                cidade.appendChild(
+                    option
+                );
+
+            }
+        );
+
+
+    predio.innerHTML =
+        `<option value="">
+            Selecione primeiro a cidade
+        </option>`;
+
+    predio.disabled = true;
+
+}
+
+
+function atualizarPredios() {
+
+    const cidade =
+        el("cidade").value;
+
+    const predio =
+        el("predio");
+
+
+    predio.innerHTML =
+        `<option value="">
+            Selecione o prédio / unidade
+        </option>`;
+
+
+    if (
+        !cidade ||
+        !CATALOGO_LOCAIS[cidade]
+    ) {
+
+        predio.disabled = true;
+
+        return;
+
+    }
+
+
+    CATALOGO_LOCAIS[cidade]
+        .slice()
+        .sort()
+        .forEach(
+            nomePredio => {
+
+                const option =
+                    document.createElement(
+                        "option"
+                    );
+
+                option.value =
+                    nomePredio;
+
+                option.textContent =
+                    nomePredio;
+
+                predio.appendChild(
+                    option
+                );
+
+            }
+        );
+
+
+    predio.disabled = false;
+
+}
+
+
+// ============================================================
+// 6. RELATÓRIOS
 // ============================================================
 
 async function carregarRelatorios() {
 
-    const lista = document.getElementById(
-        "lista-relatorios"
-    );
+    const lista =
+        el("lista-relatorios");
+
 
     const relatorios =
-        await AppVistoriasDB.listar("relatorios");
+        await AppVistoriasDB.listar(
+            "relatorios"
+        );
+
 
     relatorios.sort(
         (a, b) =>
-            new Date(b.criadoEm) -
-            new Date(a.criadoEm)
+
+            new Date(
+                b.criadoEm || 0
+            ) -
+
+            new Date(
+                a.criadoEm || 0
+            )
+
     );
 
-    if (relatorios.length === 0) {
 
-        lista.innerHTML = `
-            <div class="vazio">
+    if (!relatorios.length) {
+
+        lista.innerHTML =
+            `<div class="vazio">
                 Nenhum relatório salvo.
-            </div>
-        `;
+            </div>`;
 
         return;
+
     }
+
 
     lista.innerHTML = "";
 
-    for (const relatorio of relatorios) {
 
-        const card = document.createElement("div");
+    relatorios.forEach(
+        relatorio => {
 
-        card.className = "card";
+            const card =
+                document.createElement(
+                    "div"
+                );
 
-        card.innerHTML = `
-            <div class="relatorio-titulo">
-                ${escaparHTML(
-                    relatorio.titulo ||
-                    "Relatório sem título"
-                )}
-            </div>
+            card.className =
+                "card";
 
-            <div class="relatorio-info">
-                ${escaparHTML(
-                    relatorio.local || ""
-                )}
-            </div>
 
-            <div class="relatorio-info">
-                ${formatarData(relatorio.data)}
-                ·
-                ${escaparHTML(
-                    relatorio.responsavel || ""
-                )}
-            </div>
+            const local = [
 
-            <button
-                class="botao botao-secundario"
-                data-abrir="${relatorio.id}"
-            >
-                Abrir relatório
-            </button>
-        `;
+                relatorio.cidade,
 
-        lista.appendChild(card);
-    }
+                relatorio.predio
 
-    lista
-        .querySelectorAll("[data-abrir]")
-        .forEach(botao => {
+            ]
+                .filter(Boolean)
+                .join(" - ");
 
-            botao.addEventListener(
-                "click",
-                () => abrirRelatorio(
-                    botao.dataset.abrir
-                )
+
+            const concluido =
+                relatorio.status ===
+                "concluido";
+
+
+            card.innerHTML = `
+
+                <strong>
+                    ${escaparHTML(
+                        relatorio.titulo ||
+                        "Relatório"
+                    )}
+                </strong>
+
+                <div class="meta">
+                    ${escaparHTML(
+                        local ||
+                        relatorio.local ||
+                        ""
+                    )}
+                </div>
+
+                <div class="meta">
+                    ${formatarData(
+                        relatorio.data
+                    )}
+
+                    ·
+
+                    ${escaparHTML(
+                        relatorio.responsavel ||
+                        ""
+                    )}
+                </div>
+
+                <div style="margin-top:8px;">
+
+                    <span class="status ${
+                        concluido
+                            ? "concluido"
+                            : ""
+                    }">
+
+                        ${
+                            concluido
+                                ? "Concluído"
+                                : "Em andamento"
+                        }
+
+                    </span>
+
+                </div>
+
+                <button
+                    class="botao botao-secundario"
+                    data-abrir="${
+                        escaparHTML(
+                            relatorio.id
+                        )
+                    }"
+                >
+                    Abrir relatório
+                </button>
+
+            `;
+
+
+            lista.appendChild(
+                card
             );
 
-        });
+        }
+    );
+
+
+    lista
+        .querySelectorAll(
+            "[data-abrir]"
+        )
+        .forEach(
+            botao => {
+
+                botao.addEventListener(
+                    "click",
+                    () =>
+                        abrirRelatorio(
+                            botao.dataset.abrir
+                        )
+                );
+
+            }
+        );
+
 }
 
 
 // ============================================================
-// 3. CRIAR RELATÓRIO
+// 7. CRIAR RELATÓRIO
 // ============================================================
 
 async function criarRelatorio() {
 
     const titulo =
-        document.getElementById("titulo").value.trim();
+        el("titulo")
+            .value
+            .trim();
 
-    const local =
-        document.getElementById("local").value.trim();
+    const cidade =
+        el("cidade")
+            .value;
+
+    const predio =
+        el("predio")
+            .value;
 
     const responsavel =
-        document.getElementById("responsavel").value.trim();
+        el("responsavel")
+            .value
+            .trim();
 
     const data =
-        document.getElementById("data").value;
+        el("data")
+            .value ||
+        dataHoje();
+
 
     if (!titulo) {
 
-        alert(
+        aviso(
             "Informe um título para o relatório."
         );
 
         return;
+
     }
 
-    const agora = new Date().toISOString();
 
-    const relatorio = {
+    if (!cidade) {
+
+        aviso(
+            "Selecione a cidade."
+        );
+
+        return;
+
+    }
+
+
+    if (!predio) {
+
+        aviso(
+            "Selecione o prédio / unidade."
+        );
+
+        return;
+
+    }
+
+
+    const agora =
+        new Date().toISOString();
+
+
+    relatorioAtual = {
 
         id:
             AppVistoriasDB.gerarId(),
 
         titulo,
 
-        local,
+        cidade,
+
+        predio,
+
+        // Compatibilidade com V1.
+        local:
+            `${cidade} - ${predio}`,
 
         responsavel,
 
-        data:
-            data || dataHoje(),
+        data,
+
+        // Reservado para futura disciplina.
+        disciplina:
+            null,
+
+        status:
+            "em_andamento",
 
         criadoEm:
             agora,
 
         atualizadoEm:
-            agora,
+            agora
 
-        status:
-            "em_andamento"
     };
+
 
     await AppVistoriasDB.salvar(
         "relatorios",
-        relatorio
+        relatorioAtual
     );
 
-    relatorioAtual =
-        relatorio;
 
     limparFormularioRelatorio();
 
-    mostrarRelatorio(
-        relatorio
+
+    await mostrarRelatorio(
+        relatorioAtual
     );
+
 
     mostrarTela(
         "tela-relatorio"
     );
+
 }
 
 
 // ============================================================
-// 4. ABRIR RELATÓRIO
+// 8. ABRIR RELATÓRIO
 // ============================================================
 
 async function abrirRelatorio(id) {
@@ -255,524 +690,410 @@ async function abrirRelatorio(id) {
             id
         );
 
+
     if (!relatorio) {
 
-        alert(
+        aviso(
             "Não foi possível encontrar o relatório."
         );
 
         return;
+
     }
+
 
     relatorioAtual =
         relatorio;
 
-    mostrarRelatorio(
+
+    await mostrarRelatorio(
         relatorio
     );
+
 
     mostrarTela(
         "tela-relatorio"
     );
+
 }
 
 
 // ============================================================
-// 5. MOSTRAR RELATÓRIO
+// 9. MOSTRAR RELATÓRIO
 // ============================================================
 
-async function mostrarRelatorio(relatorio) {
+async function mostrarRelatorio(
+    relatorio
+) {
 
-    document.getElementById(
-        "relatorio-titulo"
-    ).textContent =
-        relatorio.titulo ||
-        "Relatório";
+    el("relatorio-titulo")
+        .textContent =
+            relatorio.titulo ||
+            "Relatório";
 
-    document.getElementById(
-        "relatorio-info"
-    ).textContent =
-        [
-            relatorio.local,
-            formatarData(relatorio.data),
-            relatorio.responsavel
-        ]
+
+    const local = [
+
+        relatorio.cidade,
+
+        relatorio.predio
+
+    ]
         .filter(Boolean)
-        .join(" · ");
+        .join(" - ");
+
+
+    el("relatorio-info")
+        .textContent = [
+
+            local ||
+            relatorio.local,
+
+            formatarData(
+                relatorio.data
+            ),
+
+            relatorio.responsavel
+
+        ]
+            .filter(Boolean)
+            .join(" · ");
+
+
+    const concluido =
+        relatorio.status ===
+        "concluido";
+
+
+    el("status-relatorio")
+        .innerHTML = `
+
+            <span class="status ${
+                concluido
+                    ? "concluido"
+                    : ""
+            }">
+
+                ${
+                    concluido
+                        ? "Concluído"
+                        : "Em andamento"
+                }
+
+            </span>
+
+        `;
+
 
     await carregarRegistros(
         relatorio.id
     );
+
 }
 
 
 // ============================================================
-// 6. REGISTROS
+// 10. REGISTROS
 // ============================================================
 
-async function carregarRegistros(relatorioId) {
-
-    const lista =
-        document.getElementById(
-            "lista-registros"
-        );
+async function listarRegistrosDoRelatorio(
+    relatorioId
+) {
 
     const todos =
         await AppVistoriasDB.listar(
             "registros"
         );
 
+
+    return todos
+
+        .filter(
+            registro =>
+                registro.relatorioId ===
+                relatorioId
+        )
+
+        .sort(
+            (a, b) =>
+
+                Number(
+                    a.ordem || 0
+                ) -
+
+                Number(
+                    b.ordem || 0
+                )
+
+        );
+
+}
+
+
+async function carregarRegistros(
+    relatorioId
+) {
+
+    const lista =
+        el("lista-registros");
+
+
     const registros =
-        todos
-            .filter(
-                registro =>
-                    registro.relatorioId ===
-                    relatorioId
-            )
-            .sort(
-                (a, b) =>
-                    a.ordem - b.ordem
-            );
+        await listarRegistrosDoRelatorio(
+            relatorioId
+        );
 
-    if (registros.length === 0) {
 
-        lista.innerHTML = `
-            <div class="vazio">
+    if (!registros.length) {
+
+        lista.innerHTML =
+            `<div class="vazio">
                 Nenhum registro adicionado.
-            </div>
-        `;
+            </div>`;
 
         return;
+
     }
 
+
     lista.innerHTML = "";
+
 
     registros.forEach(
         (registro, indice) => {
 
             const elemento =
-                document.createElement("div");
+                document.createElement(
+                    "article"
+                );
+
 
             elemento.className =
                 "registro";
 
-            const tipoTexto =
-                obterNomeTipo(
-                    registro.tipo
-                );
 
-            const quantidadeFotos =
-                Array.isArray(registro.fotos)
-                    ? registro.fotos.length
-                    : 0;
+            const fotos =
+                Array.isArray(
+                    registro.fotos
+                )
+                    ? registro.fotos
+                    : [];
+
 
             elemento.innerHTML = `
 
                 <div class="registro-cabecalho">
 
                     <span class="registro-numero">
+
                         ${String(
                             indice + 1
-                        ).padStart(2, "0")}
+                        ).padStart(
+                            2,
+                            "0"
+                        )}
+
                     </span>
 
-                    <span class="tipo ${classeTipo(
-                        registro.tipo
-                    )}">
-                        ${tipoTexto}
+
+                    <span class="tipo ${
+                        classeTipo(
+                            registro.tipo
+                        )
+                    }">
+
+                        ${escaparHTML(
+                            obterNomeTipo(
+                                registro.tipo
+                            )
+                        )}
+
                     </span>
 
                 </div>
 
+
                 <div class="registro-observacao">
+
                     ${escaparHTML(
                         registro.observacao ||
                         ""
                     )}
-                </div>
-
-                ${
-                    quantidadeFotos > 0
-                        ? `
-                            <div class="registro-fotos-info">
-                                📷 ${quantidadeFotos}
-                                ${
-                                    quantidadeFotos === 1
-                                        ? "foto"
-                                        : "fotos"
-                                }
-                            </div>
-                          `
-                        : ""
-                }
-
-                <div class="registro-acoes">
-
-                    <button
-                        type="button"
-                        class="botao botao-secundario btn-visualizar-registro"
-                        data-id="${registro.id}"
-                    >
-                        👁️ Visualizar
-                    </button>
 
                 </div>
+
+
+                <div class="meta"
+                     style="margin-top:8px;">
+
+                    📷 ${fotos.length}
+
+                    ${
+                        fotos.length === 1
+                            ? "foto"
+                            : "fotos"
+                    }
+
+                </div>
+
+
+<div class="acoes-registro">
+
+    <div
+        class="reordenar-registro"
+        style="
+            display:flex;
+            justify-content:flex-end;
+            align-items:center;
+            gap:6px;
+            margin-bottom:10px;
+        "
+    >
+
+        <span
+            style="
+                font-size:13px;
+                color:#666;
+                margin-right:4px;
+            "
+        >
+            Reordenar
+        </span>
+
+
+        <button
+            class="botao botao-secundario botao-pequeno"
+            data-acao="cima"
+            title="Mover registro para cima"
+            aria-label="Mover registro para cima"
+            style="
+                min-width:42px;
+                padding:8px 12px;
+            "
+            ${
+                indice === 0
+                    ? "disabled"
+                    : ""
+            }
+        >
+            ↑
+        </button>
+
+
+        <button
+            class="botao botao-secundario botao-pequeno"
+            data-acao="baixo"
+            title="Mover registro para baixo"
+            aria-label="Mover registro para baixo"
+            style="
+                min-width:42px;
+                padding:8px 12px;
+            "
+            ${
+                indice ===
+                registros.length - 1
+                    ? "disabled"
+                    : ""
+            }
+        >
+            ↓
+        </button>
+
+    </div>
+
+
+    <div
+        style="
+            display:flex;
+            gap:10px;
+        "
+    >
+
+        <button
+            class="botao botao-secundario botao-pequeno"
+            data-acao="visualizar"
+            style="flex:1;"
+        >
+            Visualizar
+        </button>
+
+
+        <button
+            class="botao botao-secundario botao-pequeno"
+            data-acao="editar"
+            style="flex:1;"
+        >
+            Editar
+        </button>
+
+    </div>
+
+</div>
+
             `;
+
+
+            elemento
+                .querySelector(
+                    '[data-acao="visualizar"]'
+                )
+                .addEventListener(
+                    "click",
+                    () =>
+                        visualizarRegistro(
+                            registro
+                        )
+                );
+
+
+            elemento
+                .querySelector(
+                    '[data-acao="editar"]'
+                )
+                .addEventListener(
+                    "click",
+                    () =>
+                        prepararEdicao(
+                            registro
+                        )
+                );
+
+
+            elemento
+                .querySelector(
+                    '[data-acao="cima"]'
+                )
+                .addEventListener(
+                    "click",
+                    () =>
+                        moverRegistro(
+                            registro.id,
+                            -1
+                        )
+                );
+
+
+            elemento
+                .querySelector(
+                    '[data-acao="baixo"]'
+                )
+                .addEventListener(
+                    "click",
+                    () =>
+                        moverRegistro(
+                            registro.id,
+                            1
+                        )
+                );
+
 
             lista.appendChild(
                 elemento
             );
+
         }
     );
 
-    document
-        .querySelectorAll(
-            ".btn-visualizar-registro"
-        )
-        .forEach(
-            botao => {
-
-                botao.addEventListener(
-                    "click",
-                    async () => {
-
-                        const id =
-                            botao.dataset.id;
-
-                        const registro =
-                            await AppVistoriasDB.buscar(
-                                "registros",
-                                id
-                            );
-
-                        if (!registro) {
-
-                            alert(
-                                "Registro não encontrado."
-                            );
-
-                            return;
-                        }
-
-                        abrirVisualizacaoRegistro(
-                            registro
-                        );
-                    }
-                );
-
-            }
-        );
-}
-
-
-// ============================================================
-// 7. VISUALIZAÇÃO DO REGISTRO
-// ============================================================
-
-function abrirVisualizacaoRegistro(registro) {
-
-    window.registroEmEdicao =
-        registro;
-
-    const modal =
-        document.getElementById(
-            "modal-registro"
-        );
-
-    const titulo =
-        document.getElementById(
-            "modal-registro-titulo"
-        );
-
-    const tipo =
-        document.getElementById(
-            "modal-registro-tipo"
-        );
-
-    const observacao =
-        document.getElementById(
-            "modal-registro-observacao"
-        );
-
-    const fotos =
-        document.getElementById(
-            "modal-registro-fotos"
-        );
-
-
-    titulo.textContent =
-        "Registro";
-
-
-    tipo.textContent =
-        obterNomeTipo(
-            registro.tipo
-        );
-
-    tipo.className =
-        "modal-tipo " +
-        classeTipo(
-            registro.tipo
-        );
-
-
-    observacao.textContent =
-        registro.observacao ||
-        "Nenhuma observação informada.";
-
-
-    fotos.innerHTML = "";
-
-    const listaFotos =
-        Array.isArray(registro.fotos)
-            ? registro.fotos
-            : [];
-
-
-    if (listaFotos.length === 0) {
-
-        fotos.innerHTML = `
-            <p>
-                Nenhuma foto registrada.
-            </p>
-        `;
-
-    } else {
-
-        listaFotos.forEach(
-            (foto, indice) => {
-
-                const imagem =
-                    document.createElement(
-                        "img"
-                    );
-
-                imagem.src =
-                    foto;
-
-                imagem.alt =
-                    `Foto ${indice + 1}`;
-
-                imagem.className =
-                    "modal-foto";
-
-                fotos.appendChild(
-                    imagem
-                );
-            }
-        );
-    }
-
-
-    modal.style.display =
-        "flex";
-}
-
-
-// ============================================================
-// 8. FECHAR VISUALIZAÇÃO
-// ============================================================
-
-function fecharVisualizacaoRegistro() {
-
-    const modal =
-        document.getElementById(
-            "modal-registro"
-        );
-
-    modal.style.display =
-        "none";
-}
-
-
-// ============================================================
-// 9. EDITAR REGISTRO
-// ============================================================
-
-function editarRegistro() {
-
-    const registro =
-        window.registroEmEdicao;
-
-    if (!registro) {
-
-        alert(
-            "Nenhum registro selecionado para edição."
-        );
-
-        return;
-    }
-
-
-    tipoRegistroAtual =
-        registro.tipo;
-
-
-    document.getElementById(
-        "titulo-tipo-registro"
-    ).textContent =
-        obterNomeTipo(
-            registro.tipo
-        );
-
-
-    document.getElementById(
-        "observacao"
-    ).value =
-        registro.observacao ||
-        "";
-
-
-    window.fotosTemporarias =
-        Array.isArray(
-            registro.fotos
-        )
-            ? [...registro.fotos]
-            : [];
-
-
-    mostrarMiniaturasFotos();
-
-
-    fecharVisualizacaoRegistro();
-
-
-    document.getElementById(
-        "form-registro"
-    ).style.display =
-        "block";
-
-
-    document.getElementById(
-        "btn-excluir-registro-edicao"
-    ).style.display =
-        "block";
-
-
-    mostrarTela(
-        "tela-registro"
-    );
-
-
-    document.getElementById(
-        "form-registro"
-    ).scrollIntoView({
-        behavior: "smooth"
-    });
-}
-
-
-// ============================================================
-// 10. EXCLUIR REGISTRO
-// ============================================================
-
-async function excluirRegistroAtual() {
-
-    const registro =
-        window.registroEmEdicao;
-
-    if (!registro) {
-
-        alert(
-            "Nenhum registro selecionado."
-        );
-
-        return;
-    }
-
-
-    const confirmar =
-        confirm(
-            "Excluir este registro?\n\n" +
-            "Esta ação não poderá ser desfeita."
-        );
-
-
-    if (!confirmar) {
-        return;
-    }
-
-
-    try {
-
-        await AppVistoriasDB.excluir(
-            "registros",
-            registro.id
-        );
-
-
-        const todos =
-            await AppVistoriasDB.listar(
-                "registros"
-            );
-
-
-        const registrosRestantes =
-            todos
-                .filter(
-                    item =>
-                        item.relatorioId ===
-                        registro.relatorioId
-                )
-                .sort(
-                    (a, b) =>
-                        a.ordem - b.ordem
-                );
-
-
-        for (
-            let indice = 0;
-            indice < registrosRestantes.length;
-            indice++
-        ) {
-
-            const registroRestante =
-                registrosRestantes[indice];
-
-            registroRestante.ordem =
-                indice + 1;
-
-            await AppVistoriasDB.salvar(
-                "registros",
-                registroRestante
-            );
-        }
-
-
-        window.registroEmEdicao =
-            null;
-
-        window.fotosTemporarias =
-            [];
-
-        tipoRegistroAtual =
-            null;
-
-
-        fecharVisualizacaoRegistro();
-
-
-        await mostrarRelatorio(
-            relatorioAtual
-        );
-
-
-        mostrarTela(
-            "tela-relatorio"
-        );
-
-
-    } catch (erro) {
-
-        console.error(
-            "Erro ao excluir registro:",
-            erro
-        );
-
-        alert(
-            "Não foi possível excluir o registro."
-        );
-    }
 }
 
 
@@ -782,44 +1103,49 @@ async function excluirRegistroAtual() {
 
 function obterNomeTipo(tipo) {
 
-    if (
-        tipo === "concluida"
-    ) {
-        return "Atividade concluída";
-    }
+    const nomes = {
 
-    if (
-        tipo === "pendencia"
-    ) {
-        return "Pendência de serviço";
-    }
+        concluida:
+            "Atividade concluída",
 
-    if (
-        tipo === "problema"
-    ) {
-        return "Problema / anomalia";
-    }
+        pendencia:
+            "Pendência de serviço",
 
-    return "Registro";
+        problema:
+            "Problema / anomalia"
+
+    };
+
+
+    return (
+        nomes[tipo] ||
+        "Registro"
+    );
+
 }
 
 
 function classeTipo(tipo) {
 
-    switch (tipo) {
+    const classes = {
 
-        case "concluida":
-            return "tipo-concluida";
+        concluida:
+            "tipo-concluida",
 
-        case "pendencia":
-            return "tipo-pendencia";
+        pendencia:
+            "tipo-pendencia",
 
-        case "problema":
-            return "tipo-problema";
+        problema:
+            "tipo-problema"
 
-        default:
-            return "";
-    }
+    };
+
+
+    return (
+        classes[tipo] ||
+        ""
+    );
+
 }
 
 
@@ -827,140 +1153,1371 @@ function classeTipo(tipo) {
 // 12. NOVO REGISTRO
 // ============================================================
 
+function novoRegistro() {
+
+    registroEmEdicao =
+        null;
+
+    tipoRegistroAtual =
+        null;
+
+    fotosTemporarias =
+        [];
+
+
+    el("titulo-tela-registro")
+        .textContent =
+            "Novo registro";
+
+
+    el("form-registro")
+        .style.display =
+            "none";
+
+
+    el("btn-excluir-registro")
+        .style.display =
+            "none";
+
+
+    el("observacao")
+        .value = "";
+
+
+    el("salvamento-status")
+        .textContent = "";
+
+
+    delete el(
+        "form-registro"
+    ).dataset.rascunhoId;
+
+
+    renderizarFotos();
+
+
+    mostrarTela(
+        "tela-registro"
+    );
+
+}
+
+
 function selecionarTipo(tipo) {
 
     tipoRegistroAtual =
         tipo;
 
 
-    document.getElementById(
-        "titulo-tipo-registro"
-    ).textContent =
-        obterNomeTipo(
-            tipo
-        );
+    el("titulo-tipo-registro")
+        .textContent =
+            obterNomeTipo(
+                tipo
+            );
 
 
-    document.getElementById(
-        "observacao"
-    ).value =
-        "";
+    el("form-registro")
+        .style.display =
+            "block";
 
 
-    document.getElementById(
-        "form-registro"
-    ).style.display =
-        "block";
+    window.scrollTo({
 
+        top:
+            document.body.scrollHeight,
 
-    document
-        .getElementById(
-            "form-registro"
-        )
-        .scrollIntoView({
-            behavior: "smooth"
-        });
+        behavior:
+            "smooth"
+
+    });
+
 }
 
 
 // ============================================================
-// 13. SALVAR REGISTRO
+// 13. EDITAR REGISTRO
 // ============================================================
 
-async function salvarNovoRegistro() {
+async function prepararEdicao(
+    registro
+) {
+
+    registroEmEdicao =
+        registro;
+
+    tipoRegistroAtual =
+        registro.tipo;
+
+
+    el("titulo-tela-registro")
+        .textContent =
+            "Editar registro";
+
+
+    el("titulo-tipo-registro")
+        .textContent =
+            obterNomeTipo(
+                registro.tipo
+            );
+
+
+    el("observacao")
+        .value =
+            registro.observacao ||
+            "";
+
+
+    fotosTemporarias =
+        await prepararFotosParaEdicao(
+            registro.fotos ||
+            []
+        );
+
+
+    renderizarFotos();
+
+
+    el("form-registro")
+        .style.display =
+            "block";
+
+
+    el("btn-excluir-registro")
+        .style.display =
+            "block";
+
+
+    mostrarTela(
+        "tela-registro"
+    );
+
+}
+
+
+// ============================================================
+// 14. FOTOS ANTIGAS E NOVAS
+// ============================================================
+
+async function prepararFotosParaEdicao(
+    fotos
+) {
+
+    const resultado =
+        [];
+
+
+    for (
+        const foto of fotos
+    ) {
+
+        // ----------------------------------------------------
+        // Foto nova:
+        // objeto contendo Blob.
+        // ----------------------------------------------------
+
+        if (
+            foto &&
+            typeof foto === "object" &&
+            foto.blob
+        ) {
+
+            resultado.push({
+
+                blob:
+                    foto.blob,
+
+                thumb:
+                    foto.thumb ||
+                    foto.blob,
+
+                url:
+                    URL.createObjectURL(
+                        foto.thumb ||
+                        foto.blob
+                    ),
+
+                lat:
+                    foto.lat ??
+                    null,
+
+                lng:
+                    foto.lng ??
+                    null,
+
+                precisao:
+                    foto.precisao ??
+                    null,
+
+                capturadaEm:
+                    foto.capturadaEm ||
+                    null,
+
+                carimbada:
+                    foto.carimbada !== false
+
+            });
+
+
+            continue;
+
+        }
+
+
+        // ----------------------------------------------------
+        // Foto antiga:
+        // DataURL da V1.
+        //
+        // É convertida para Blob quando o registro é editado.
+        // ----------------------------------------------------
+
+        if (
+            typeof foto ===
+            "string"
+        ) {
+
+            try {
+
+                const blob =
+                    await dataURLParaBlob(
+                        foto
+                    );
+
+
+                const thumb =
+                    await criarMiniatura(
+                        blob
+                    );
+
+
+                resultado.push({
+
+                    blob,
+
+                    thumb,
+
+                    url:
+                        URL.createObjectURL(
+                            thumb
+                        ),
+
+                    lat:
+                        null,
+
+                    lng:
+                        null,
+
+                    precisao:
+                        null,
+
+                    capturadaEm:
+                        null,
+
+                    // Foto antiga não recebeu o novo
+                    // carimbo/GPS.
+                    carimbada:
+                        false
+
+                });
+
+            } catch (erro) {
+
+                console.error(
+                    "Erro ao converter foto antiga:",
+                    erro
+                );
+
+            }
+
+        }
+
+    }
+
+
+    return resultado;
+
+}
+
+
+function dataURLParaBlob(
+    dataURL
+) {
+
+    return fetch(
+        dataURL
+    )
+        .then(
+            resposta =>
+                resposta.blob()
+        );
+
+}
+
+
+// ============================================================
+// 15. RENDERIZAR FOTOS
+// ============================================================
+
+function renderizarFotos() {
+
+    const lista =
+        el("lista-fotos");
+
+
+    lista.innerHTML =
+        "";
+
+
+    fotosTemporarias
+        .forEach(
+            (foto, indice) => {
+
+                const item =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                item.className =
+                    "foto-editor";
+
+
+                item.innerHTML = `
+
+                    <img
+                        src="${foto.url}"
+                        alt="Foto ${
+                            indice + 1
+                        }"
+                    >
+
+
+                    <div class="meta"
+                         style="margin:6px 0;">
+
+                        Foto ${
+                            indice + 1
+                        }
+
+                    </div>
+
+
+                    <div class="foto-acoes">
+
+                        <button
+                            type="button"
+                            data-acao="abrir"
+                        >
+                            Ampliar
+                        </button>
+
+
+                        <button
+                            type="button"
+                            data-acao="remover"
+                        >
+                            Remover
+                        </button>
+
+                    </div>
+
+                `;
+
+
+                item
+                    .querySelector(
+                        '[data-acao="abrir"]'
+                    )
+                    .addEventListener(
+                        "click",
+                        () =>
+                            abrirFotoAmpliada(
+                                foto.blob
+                            )
+                    );
+
+
+                item
+                    .querySelector(
+                        '[data-acao="remover"]'
+                    )
+                    .addEventListener(
+                        "click",
+                        () =>
+                            removerFoto(
+                                indice
+                            )
+                    );
+
+
+                lista.appendChild(
+                    item
+                );
+
+            }
+        );
+
+}
+
+
+function removerFoto(
+    indice
+) {
+
+    const foto =
+        fotosTemporarias[
+            indice
+        ];
+
+
+    if (foto?.url) {
+
+        URL.revokeObjectURL(
+            foto.url
+        );
+
+    }
+
+
+    fotosTemporarias.splice(
+        indice,
+        1
+    );
+
+
+    renderizarFotos();
+
+
+    agendarAutoSalvar();
+
+}
+
+
+// ============================================================
+// 16. ADICIONAR FOTOS
+// ============================================================
+
+async function adicionarArquivos(
+    arquivos,
+    origem = "camera"
+) {
+
+    for (
+        const arquivo of
+        Array.from(arquivos)
+    ) {
+
+        if (
+            !arquivo.type.startsWith(
+                "image/"
+            )
+        ) {
+
+            continue;
+
+        }
+
+
+        try {
+
+            const foto =
+                await processarNovaFoto(
+                    arquivo,
+                    origem
+                );
+
+
+            fotosTemporarias.push(
+                foto
+            );
+
+
+            renderizarFotos();
+
+
+            agendarAutoSalvar();
+
+        } catch (erro) {
+
+            console.error(
+                erro
+            );
+
+
+            aviso(
+                erro.message ||
+                "Não foi possível adicionar a fotografia."
+            );
+
+        }
+
+    }
+
+}
+
+
+async function processarNovaFoto(
+    arquivo,
+    origem = "camera"
+) {
+
+    const agora =
+        new Date();
+
+
+    let localizacao = null;
+
+
+    // --------------------------------------------------------
+    // GPS somente para fotos tiradas pela câmera
+    // --------------------------------------------------------
+
+    if (
+        origem === "camera"
+    ) {
+
+        localizacao =
+            await obterLocalizacaoObrigatoria();
+
+    }
+
+
+    // --------------------------------------------------------
+    // Processa a fotografia
+    // --------------------------------------------------------
+
+    const fotoCarimbada =
+        await processarFotoComCarimbo(
+            arquivo,
+            localizacao,
+            agora,
+            origem
+        );
+
+
+    // --------------------------------------------------------
+    // Cria miniatura
+    // --------------------------------------------------------
+
+    const thumb =
+        await criarMiniatura(
+            fotoCarimbada
+        );
+
+
+    return {
+
+        blob:
+            fotoCarimbada,
+
+        thumb,
+
+        url:
+            URL.createObjectURL(
+                thumb
+            ),
+
+        lat:
+            localizacao
+                ? localizacao.lat
+                : null,
+
+        lng:
+            localizacao
+                ? localizacao.lng
+                : null,
+
+        precisao:
+            localizacao
+                ? localizacao.accuracy
+                : null,
+
+        capturadaEm:
+            agora.toISOString(),
+
+        origem:
+            origem === "galeria"
+                ? "Armazenamento"
+                : "Câmera",
+
+        carimbada:
+            true
+
+    };
+
+}
+
+
+// ============================================================
+// 17. GPS OBRIGATÓRIO
+// ============================================================
+
+function obterLocalizacaoObrigatoria() {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            if (
+                !navigator.geolocation
+            ) {
+
+                reject(
+                    new Error(
+                        "Este aparelho/navegador não disponibiliza GPS."
+                    )
+                );
+
+                return;
+
+            }
+
+
+            navigator.geolocation.getCurrentPosition(
+
+                posicao => {
+
+                    const coords =
+                        posicao.coords;
+
+
+                    if (
+                        typeof coords.latitude !==
+                            "number" ||
+
+                        typeof coords.longitude !==
+                            "number"
+                    ) {
+
+                        reject(
+                            new Error(
+                                "Não foi possível obter uma localização GPS válida."
+                            )
+                        );
+
+                        return;
+
+                    }
+
+
+                    resolve({
+
+                        lat:
+                            coords.latitude,
+
+                        lng:
+                            coords.longitude,
+
+                        accuracy:
+                            coords.accuracy
+
+                    });
+
+                },
+
+
+                erro => {
+
+                    let mensagem =
+                        "Não foi possível obter a localização GPS.";
+
+
+                    if (
+                        erro.code ===
+                        1
+                    ) {
+
+                        mensagem =
+                            "Permita o acesso à localização para registrar a fotografia.";
+
+                    }
+
+
+                    if (
+                        erro.code ===
+                        2
+                    ) {
+
+                        mensagem =
+                            "A localização GPS está indisponível. Tente novamente.";
+
+                    }
+
+
+                    if (
+                        erro.code ===
+                        3
+                    ) {
+
+                        mensagem =
+                            "O GPS demorou para responder. Tente novamente.";
+
+                    }
+
+
+                    reject(
+                        new Error(
+                            mensagem
+                        )
+                    );
+
+                },
+
+
+                {
+
+                    enableHighAccuracy:
+                        true,
+
+                    timeout:
+                        15000,
+
+                    maximumAge:
+                        0
+
+                }
+
+            );
+
+        }
+    );
+
+}
+
+
+// ============================================================
+// 18. CARREGAR IMAGEM
+// ============================================================
+
+function carregarImagem(
+    arquivoOuBlob
+) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            const url =
+                URL.createObjectURL(
+                    arquivoOuBlob
+                );
+
+
+            const imagem =
+                new Image();
+
+
+            imagem.onload =
+                () => {
+
+                    URL.revokeObjectURL(
+                        url
+                    );
+
+                    resolve(
+                        imagem
+                    );
+
+                };
+
+
+            imagem.onerror =
+                () => {
+
+                    URL.revokeObjectURL(
+                        url
+                    );
+
+                    reject(
+                        new Error(
+                            "Não foi possível processar a fotografia."
+                        )
+                    );
+
+                };
+
+
+            imagem.src =
+                url;
+
+        }
+    );
+
+}
+
+
+// ============================================================
+// 19. PROCESSAR FOTO
+// COMPRESSÃO + CARIMBO
+// ============================================================
+
+async function processarFotoComCarimbo(
+
+    arquivo,
+
+    localizacao,
+
+    dataHora,
+
+    origem = "camera"
+
+) {
+
+    const imagem =
+        await carregarImagem(
+            arquivo
+        );
+
+
+    const maxDimensao =
+        1600;
+
+
+    let largura =
+        imagem.naturalWidth;
+
+
+    let altura =
+        imagem.naturalHeight;
+
+
+    if (
+        largura >
+            maxDimensao ||
+
+        altura >
+            maxDimensao
+    ) {
+
+        const fator =
+            Math.min(
+
+                maxDimensao /
+                    largura,
+
+                maxDimensao /
+                    altura
+
+            );
+
+
+        largura =
+            Math.round(
+                largura * fator
+            );
+
+
+        altura =
+            Math.round(
+                altura * fator
+            );
+
+    }
+
+
+    const canvas =
+        document.createElement(
+            "canvas"
+        );
+
+
+    canvas.width =
+        largura;
+
+    canvas.height =
+        altura;
+
+
+    const contexto =
+        canvas.getContext(
+            "2d"
+        );
+
+
+    contexto.drawImage(
+
+        imagem,
+
+        0,
+
+        0,
+
+        largura,
+
+        altura
+
+    );
+
+
+    // --------------------------------------------------------
+    // Texto do carimbo
+    // --------------------------------------------------------
+
+    const dataFormatada =
+        dataHora.toLocaleString(
+            "pt-BR",
+            {
+                dateStyle:
+                    "short",
+
+                timeStyle:
+                    "medium"
+            }
+        );
+
+
+const linhaLocalizacao =
+
+    origem === "galeria"
+
+        ? "Armazenamento"
+
+        : (
+            `${localizacao.lat.toFixed(6)}, ` +
+
+            `${localizacao.lng.toFixed(6)} ` +
+
+            `(±${Math.round(
+                localizacao.accuracy
+            )} m)`
+        );
+
+
+    const alturaCarimbo =
+        Math.max(
+
+            72,
+
+            Math.round(
+                altura * 0.07
+            )
+
+        );
+
+
+    // --------------------------------------------------------
+    // Fundo do carimbo
+    // --------------------------------------------------------
+
+    contexto.fillStyle =
+        "rgba(0,0,0,0.72)";
+
+
+    contexto.fillRect(
+
+        0,
+
+        altura -
+            alturaCarimbo,
+
+        largura,
+
+        alturaCarimbo
+
+    );
+
+
+    // --------------------------------------------------------
+    // Data/hora
+    // --------------------------------------------------------
+
+    const tamanhoFonte =
+        Math.max(
+
+            18,
+
+            Math.round(
+                largura * 0.018
+            )
+
+        );
+
+
+    contexto.fillStyle =
+        "#ffffff";
+
+
+    contexto.font =
+        `bold ${tamanhoFonte}px Arial`;
+
+
+    contexto.textBaseline =
+        "top";
+
+
+    contexto.fillText(
+
+        dataFormatada,
+
+        16,
+
+        altura -
+            alturaCarimbo +
+            10
+
+    );
+
+
+    // --------------------------------------------------------
+    // GPS
+    // --------------------------------------------------------
+
+// --------------------------------------------------------
+// Localização / origem
+// --------------------------------------------------------
+
+contexto.font =
+    `${Math.max(
+        15,
+        tamanhoFonte - 3
+    )}px Arial`;
+
+
+contexto.fillText(
+
+    origem === "galeria"
+        ? "Origem: Armazenamento"
+        : `GPS: ${linhaLocalizacao}`,
+
+    16,
+
+    altura -
+        alturaCarimbo +
+        10 +
+        tamanhoFonte +
+        4
+
+);
+
+
+    return new Promise(
+        (resolve, reject) => {
+
+            canvas.toBlob(
+
+                blob => {
+
+                    if (!blob) {
+
+                        reject(
+                            new Error(
+                                "Não foi possível gerar a fotografia processada."
+                            )
+                        );
+
+                        return;
+
+                    }
+
+
+                    resolve(
+                        blob
+                    );
+
+                },
+
+                "image/jpeg",
+
+                0.88
+
+            );
+
+        }
+    );
+
+}
+
+
+// ============================================================
+// 20. MINIATURA
+// ============================================================
+
+async function criarMiniatura(
+    blob
+) {
+
+    const imagem =
+        await carregarImagem(
+            blob
+        );
+
+
+    const maxDimensao =
+        320;
+
+
+    let largura =
+        imagem.naturalWidth;
+
+
+    let altura =
+        imagem.naturalHeight;
+
+
+    if (
+        largura >
+            maxDimensao ||
+
+        altura >
+            maxDimensao
+    ) {
+
+        const fator =
+            Math.min(
+
+                maxDimensao /
+                    largura,
+
+                maxDimensao /
+                    altura
+
+            );
+
+
+        largura =
+            Math.round(
+                largura * fator
+            );
+
+
+        altura =
+            Math.round(
+                altura * fator
+            );
+
+    }
+
+
+    const canvas =
+        document.createElement(
+            "canvas"
+        );
+
+
+    canvas.width =
+        largura;
+
+    canvas.height =
+        altura;
+
+
+    canvas
+        .getContext("2d")
+        .drawImage(
+
+            imagem,
+
+            0,
+
+            0,
+
+            largura,
+
+            altura
+
+        );
+
+
+    return new Promise(
+        (resolve, reject) => {
+
+            canvas.toBlob(
+
+                blobMiniatura => {
+
+                    if (
+                        !blobMiniatura
+                    ) {
+
+                        reject(
+                            new Error(
+                                "Não foi possível criar a miniatura."
+                            )
+                        );
+
+                        return;
+
+                    }
+
+
+                    resolve(
+                        blobMiniatura
+                    );
+
+                },
+
+                "image/jpeg",
+
+                0.72
+
+            );
+
+        }
+    );
+
+}
+
+
+// ============================================================
+// 21. SALVAR REGISTRO
+// ============================================================
+
+async function salvarRegistro() {
 
     if (!relatorioAtual) {
 
-        alert(
+        aviso(
             "Nenhum relatório está aberto."
         );
 
         return;
+
     }
 
 
     if (!tipoRegistroAtual) {
 
-        alert(
+        aviso(
             "Selecione o tipo do registro."
         );
 
         return;
+
     }
 
 
     const observacao =
-        document
-            .getElementById(
-                "observacao"
-            )
+        el("observacao")
             .value
             .trim();
 
 
     if (!observacao) {
 
-        alert(
+        aviso(
             "Informe uma observação."
         );
 
         return;
+
     }
+
+
+    if (!fotosTemporarias.length) {
+
+        aviso(
+            "Adicione pelo menos uma fotografia."
+        );
+
+        return;
+
+    }
+
+
+    const fotos =
+        fotosTemporarias
+            .map(
+                foto => ({
+
+                    blob:
+                        foto.blob,
+
+                    thumb:
+                        foto.thumb,
+
+                    lat:
+                        foto.lat,
+
+                    lng:
+                        foto.lng,
+
+                    precisao:
+                        foto.precisao,
+
+                    capturadaEm:
+                        foto.capturadaEm,
+
+                    carimbada:
+                        foto.carimbada
+
+                })
+            );
 
 
     // --------------------------------------------------------
     // EDIÇÃO
     // --------------------------------------------------------
 
-    if (window.registroEmEdicao) {
+    if (
+        registroEmEdicao
+    ) {
 
-        const registro =
-            window.registroEmEdicao;
+        const registro = {
 
+            ...registroEmEdicao,
 
-        registro.tipo =
-            tipoRegistroAtual;
+            tipo:
+                tipoRegistroAtual,
 
+            observacao,
 
-        registro.observacao =
-            observacao;
+            fotos,
 
+            rascunho:
+                false,
 
-        registro.fotos =
-            window.fotosTemporarias || [];
+            atualizadoEm:
+                new Date()
+                    .toISOString()
 
-
-        registro.atualizadoEm =
-            new Date().toISOString();
+        };
 
 
         await AppVistoriasDB.salvar(
+
             "registros",
+
             registro
+
         );
 
-
-        window.registroEmEdicao =
-            null;
+    }
 
 
-    } else {
+    // --------------------------------------------------------
+    // NOVO REGISTRO
+    // --------------------------------------------------------
 
-        // ----------------------------------------------------
-        // NOVO REGISTRO
-        // ----------------------------------------------------
+    else {
 
         const registros =
-            await AppVistoriasDB.listar(
-                "registros"
+            await listarRegistrosDoRelatorio(
+                relatorioAtual.id
             );
 
 
-        const registrosDoRelatorio =
+        // Remove eventual rascunho criado
+        // pelo salvamento automático.
+        const rascunhos =
             registros.filter(
                 registro =>
-                    registro.relatorioId ===
-                    relatorioAtual.id
+                    registro.rascunho
+            );
+
+
+        for (
+            const rascunho of
+            rascunhos
+        ) {
+
+            await AppVistoriasDB.excluir(
+                "registros",
+                rascunho.id
+            );
+
+        }
+
+
+        const registrosFinais =
+            await listarRegistrosDoRelatorio(
+                relatorioAtual.id
             );
 
 
@@ -973,65 +2530,52 @@ async function salvarNovoRegistro() {
                 relatorioAtual.id,
 
             ordem:
-                registrosDoRelatorio.length + 1,
+                registrosFinais.length + 1,
 
             tipo:
                 tipoRegistroAtual,
 
             observacao,
 
-            fotos:
-                window.fotosTemporarias || [],
+            fotos,
+
+            rascunho:
+                false,
 
             criadoEm:
-                new Date().toISOString()
+                new Date()
+                    .toISOString()
+
         };
 
 
         await AppVistoriasDB.salvar(
+
             "registros",
+
             registro
+
         );
+
     }
 
 
-    // --------------------------------------------------------
-    // ATUALIZAR RELATÓRIO
-    // --------------------------------------------------------
-
     relatorioAtual.atualizadoEm =
-        new Date().toISOString();
+        new Date()
+            .toISOString();
 
 
     await AppVistoriasDB.salvar(
+
         "relatorios",
+
         relatorioAtual
+
     );
 
 
-    // --------------------------------------------------------
-    // LIMPAR FORMULÁRIO
-    // --------------------------------------------------------
+    limparFormularioRegistro();
 
-    tipoRegistroAtual =
-        null;
-
-    window.fotosTemporarias =
-        [];
-
-    document.getElementById(
-        "observacao"
-    ).value = "";
-
-    document.getElementById(
-        "form-registro"
-    ).style.display =
-        "none";
-
-
-    // --------------------------------------------------------
-    // ATUALIZAR RELATÓRIO NA TELA
-    // --------------------------------------------------------
 
     await mostrarRelatorio(
         relatorioAtual
@@ -1041,330 +2585,1183 @@ async function salvarNovoRegistro() {
     mostrarTela(
         "tela-relatorio"
     );
+
 }
 
 
 // ============================================================
-// 14. LIMPAR FORMULÁRIO DE RELATÓRIO
+// 22. SALVAMENTO AUTOMÁTICO
 // ============================================================
 
-function limparFormularioRelatorio() {
+function agendarAutoSalvar() {
 
-    document.getElementById(
-        "titulo"
-    ).value = "";
+    clearTimeout(
+        autosaveTimer
+    );
 
-    document.getElementById(
-        "local"
-    ).value = "";
 
-    document.getElementById(
-        "responsavel"
-    ).value = "";
+    autosaveTimer =
+        setTimeout(
 
-    document.getElementById(
-        "data"
-    ).value =
-        dataHoje();
+            salvarRascunhoAutomaticamente,
+
+            1200
+
+        );
+
+}
+
+
+async function salvarRascunhoAutomaticamente() {
+
+    if (!relatorioAtual) {
+
+        return;
+
+    }
+
+
+    if (
+        !el("tela-registro")
+            .classList
+            .contains("ativa")
+    ) {
+
+        return;
+
+    }
+
+
+    if (!tipoRegistroAtual) {
+
+        return;
+
+    }
+
+
+    const observacao =
+        el("observacao")
+            .value
+            .trim();
+
+
+    if (
+        !observacao &&
+        !fotosTemporarias.length
+    ) {
+
+        return;
+
+    }
+
+
+    const fotos =
+        fotosTemporarias
+            .map(
+                foto => ({
+
+                    blob:
+                        foto.blob,
+
+                    thumb:
+                        foto.thumb,
+
+                    lat:
+                        foto.lat,
+
+                    lng:
+                        foto.lng,
+
+                    precisao:
+                        foto.precisao,
+
+                    capturadaEm:
+                        foto.capturadaEm,
+
+                    carimbada:
+                        foto.carimbada
+
+                })
+            );
+
+
+    // --------------------------------------------------------
+    // Edição
+    // --------------------------------------------------------
+
+    if (
+        registroEmEdicao
+    ) {
+
+        await AppVistoriasDB.salvar(
+
+            "registros",
+
+            {
+
+                ...registroEmEdicao,
+
+                tipo:
+                    tipoRegistroAtual,
+
+                observacao,
+
+                fotos,
+
+                atualizadoEm:
+                    new Date()
+                        .toISOString()
+
+            }
+
+        );
+
+
+        el(
+            "salvamento-status"
+        ).textContent =
+            "Salvo automaticamente ✓";
+
+
+        return;
+
+    }
+
+
+    // --------------------------------------------------------
+    // Novo registro
+    // --------------------------------------------------------
+
+    let rascunhoId =
+        el(
+            "form-registro"
+        )
+            .dataset
+            .rascunhoId;
+
+
+    if (!rascunhoId) {
+
+        rascunhoId =
+            AppVistoriasDB.gerarId();
+
+
+        el(
+            "form-registro"
+        )
+            .dataset
+            .rascunhoId =
+                rascunhoId;
+
+    }
+
+
+    const existente =
+        await AppVistoriasDB.buscar(
+
+            "registros",
+
+            rascunhoId
+
+        );
+
+
+    const registros =
+        await listarRegistrosDoRelatorio(
+
+            relatorioAtual.id
+
+        );
+
+
+    await AppVistoriasDB.salvar(
+
+        "registros",
+
+        {
+
+            id:
+                rascunhoId,
+
+            relatorioId:
+                relatorioAtual.id,
+
+            ordem:
+                existente?.ordem ||
+                registros.length + 1,
+
+            tipo:
+                tipoRegistroAtual,
+
+            observacao,
+
+            fotos,
+
+            rascunho:
+                true,
+
+            criadoEm:
+                existente?.criadoEm ||
+                new Date()
+                    .toISOString(),
+
+            atualizadoEm:
+                new Date()
+                    .toISOString()
+
+        }
+
+    );
+
+
+    el(
+        "salvamento-status"
+    ).textContent =
+        "Rascunho salvo automaticamente ✓";
+
 }
 
 
 // ============================================================
-// 15. FOTOS
+// 23. EXCLUSÃO
 // ============================================================
 
-window.fotosTemporarias = [];
+async function excluirRegistro() {
+
+    if (!registroEmEdicao) {
+
+        return;
+
+    }
 
 
-const btnTirarFoto =
-    document.getElementById(
-        "btn-tirar-foto"
+    if (
+        !confirm(
+
+            "Excluir este registro?\n\n" +
+
+            "Esta ação não poderá ser desfeita."
+
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    await AppVistoriasDB.excluir(
+
+        "registros",
+
+        registroEmEdicao.id
+
     );
 
 
-const btnEscolherFoto =
-    document.getElementById(
-        "btn-escolher-foto"
+    await renumerarRegistros(
+
+        registroEmEdicao.relatorioId
+
     );
 
 
-const inputCamera =
-    document.getElementById(
-        "input-camera"
+    limparFormularioRegistro();
+
+
+    await mostrarRelatorio(
+
+        relatorioAtual
+
     );
 
 
-const inputGaleria =
-    document.getElementById(
-        "input-galeria"
+    mostrarTela(
+
+        "tela-relatorio"
+
     );
 
+}
 
-const listaFotos =
-    document.getElementById(
-        "lista-fotos"
-    );
+
+async function renumerarRegistros(
+    relatorioId
+) {
+
+    const registros =
+        await listarRegistrosDoRelatorio(
+
+            relatorioId
+
+        );
+
+
+    for (
+        let i = 0;
+
+        i < registros.length;
+
+        i++
+    ) {
+
+        if (
+            registros[i].ordem !==
+            i + 1
+        ) {
+
+            await AppVistoriasDB.salvar(
+
+                "registros",
+
+                {
+
+                    ...registros[i],
+
+                    ordem:
+                        i + 1
+
+                }
+
+            );
+
+        }
+
+    }
+
+}
 
 
 // ============================================================
-// 16. MOSTRAR MINIATURAS
+// 24. REORDENAÇÃO
 // ============================================================
 
-function mostrarMiniaturasFotos() {
+async function moverRegistro(
 
-    listaFotos.innerHTML = "";
+    id,
+
+    deslocamento
+
+) {
+
+    const registros =
+        await listarRegistrosDoRelatorio(
+
+            relatorioAtual.id
+
+        );
 
 
-    window.fotosTemporarias.forEach(
-        (foto, indice) => {
+    const indice =
+        registros.findIndex(
 
-            const container =
+            registro =>
+                registro.id ===
+                id
+
+        );
+
+
+    const novoIndice =
+        indice +
+        deslocamento;
+
+
+    if (
+
+        indice < 0 ||
+
+        novoIndice < 0 ||
+
+        novoIndice >=
+            registros.length
+
+    ) {
+
+        return;
+
+    }
+
+
+    const atual =
+        registros[indice];
+
+
+    const outro =
+        registros[novoIndice];
+
+
+    const ordemAtual =
+        atual.ordem;
+
+
+    atual.ordem =
+        outro.ordem;
+
+
+    outro.ordem =
+        ordemAtual;
+
+
+    await AppVistoriasDB.salvar(
+
+        "registros",
+
+        atual
+
+    );
+
+
+    await AppVistoriasDB.salvar(
+
+        "registros",
+
+        outro
+
+    );
+
+
+    await mostrarRelatorio(
+
+        relatorioAtual
+
+    );
+
+}
+
+
+// ============================================================
+// 25. REVISÃO
+// ============================================================
+
+async function abrirRevisao() {
+
+    if (!relatorioAtual) {
+
+        return;
+
+    }
+
+
+    const registros =
+        await listarRegistrosDoRelatorio(
+
+            relatorioAtual.id
+
+        );
+
+
+    if (!registros.length) {
+
+        aviso(
+
+            "Adicione pelo menos um registro antes da revisão."
+
+        );
+
+        return;
+
+    }
+
+
+    const local = [
+
+        relatorioAtual.cidade,
+
+        relatorioAtual.predio
+
+    ]
+        .filter(Boolean)
+        .join(" - ");
+
+
+    const conteudo =
+        el(
+            "conteudo-revisao"
+        );
+
+
+    conteudo.innerHTML = `
+
+        <div class="revisao">
+
+            <h3>
+                ${escaparHTML(
+                    relatorioAtual.titulo
+                )}
+            </h3>
+
+            <p>
+                <strong>Local:</strong>
+                ${escaparHTML(local)}
+            </p>
+
+            <p>
+                <strong>Data:</strong>
+                ${formatarData(
+                    relatorioAtual.data
+                )}
+            </p>
+
+            <p>
+                <strong>Responsável:</strong>
+                ${escaparHTML(
+                    relatorioAtual.responsavel ||
+                    "—"
+                )}
+            </p>
+
+            <p>
+                <strong>Registros:</strong>
+                ${registros.length}
+            </p>
+
+        </div>
+
+    `;
+
+
+    registros.forEach(
+        (registro, indice) => {
+
+            const bloco =
                 document.createElement(
                     "div"
                 );
 
 
-            container.className =
-                "foto-item";
+            bloco.className =
+                "revisao";
 
 
-            container.innerHTML = `
+            const fotos =
+                Array.isArray(
+                    registro.fotos
+                )
+                    ? registro.fotos
+                    : [];
 
-                <img
-                    src="${foto}"
-                    alt="Foto ${indice + 1}"
-                    class="miniatura-foto"
-                >
 
-                <button
-                    type="button"
-                    class="botao-remover-foto"
-                    data-indice="${indice}"
-                >
-                    ✕
-                </button>
+            bloco.innerHTML = `
+
+                <h3>
+
+                    ${String(
+                        indice + 1
+                    ).padStart(
+                        2,
+                        "0"
+                    )}
+
+                    —
+
+                    ${escaparHTML(
+                        obterNomeTipo(
+                            registro.tipo
+                        )
+                    )}
+
+                </h3>
+
+
+                <p style="white-space:pre-wrap;">
+
+                    ${escaparHTML(
+                        registro.observacao ||
+                        ""
+                    )}
+
+                </p>
+
+
+                <div class="meta">
+
+                    ${fotos.length}
+                    foto(s)
+
+                </div>
+
+
+                <div class="lista-fotos">
+                </div>
+
             `;
 
 
-            listaFotos.appendChild(
-                container
-            );
-
-
-            const imagem =
-                container.querySelector(
-                    ".miniatura-foto"
+            const listaFotos =
+                bloco.querySelector(
+                    ".lista-fotos"
                 );
 
 
-            imagem.addEventListener(
-                "click",
-                () => {
+            fotos.forEach(
+                (
+                    foto,
+                    fotoIndice
+                ) => {
 
-                    abrirFotoAmpliada(
-                        foto,
-                        indice
+                    const imagem =
+                        document.createElement(
+                            "img"
+                        );
+
+
+                    imagem.className =
+                        "revisao-foto";
+
+
+                    imagem.alt =
+                        `Foto ${
+                            fotoIndice + 1
+                        }`;
+
+
+                    const url =
+                        obterUrlFoto(
+                            foto
+                        );
+
+
+                    imagem.src =
+                        url;
+
+
+                    imagem.addEventListener(
+                        "click",
+                        async () => {
+
+                            const blob =
+                                await obterBlobFoto(
+                                    foto
+                                );
+
+
+                            abrirFotoAmpliada(
+                                blob
+                            );
+
+                        }
                     );
+
+
+                    listaFotos.appendChild(
+                        imagem
+                    );
+
                 }
             );
+
+
+            conteudo.appendChild(
+                bloco
+            );
+
         }
     );
 
 
-    document
-        .querySelectorAll(
-            ".botao-remover-foto"
-        )
-        .forEach(
-            botao => {
+    mostrarTela(
+        "tela-revisao"
+    );
 
-                botao.addEventListener(
-                    "click",
-                    () => {
-
-                        const indice =
-                            Number(
-                                botao.dataset.indice
-                            );
-
-
-                        window.fotosTemporarias.splice(
-                            indice,
-                            1
-                        );
-
-
-                        mostrarMiniaturasFotos();
-                    }
-                );
-            }
-        );
 }
 
 
 // ============================================================
-// 17. FOTO AMPLIADA
+// 26. CONCLUIR
 // ============================================================
 
-function abrirFotoAmpliada(
-    foto,
-    indice = 0
-) {
+async function concluirRelatorio() {
 
-    const modal =
-        document.getElementById(
-            "modal-foto-ampliada"
-        );
+    if (!relatorioAtual) {
 
-
-    const imagem =
-        document.getElementById(
-            "foto-ampliada"
-        );
-
-
-    if (
-        !modal ||
-        !imagem
-    ) {
         return;
+
     }
 
 
-    imagem.src =
-        foto;
+    const registros =
+        await listarRegistrosDoRelatorio(
+
+            relatorioAtual.id
+
+        );
 
 
-    imagem.alt =
-        `Foto ampliada ${indice + 1}`;
+    if (!registros.length) {
+
+        aviso(
+
+            "Não é possível concluir um relatório sem registros."
+
+        );
+
+        return;
+
+    }
 
 
-    modal.style.display =
-        "flex";
+    // --------------------------------------------------------
+    // Confere GPS/carimbo.
+    // --------------------------------------------------------
+
+    for (
+        const registro of
+        registros
+    ) {
+
+        for (
+            const foto of
+            registro.fotos || []
+        ) {
+
+            // Fotos antigas da V1 são permitidas
+            // para preservar dados já existentes.
+            //
+            // Fotos novas, porém, precisam ter
+            // GPS + carimbo.
+
+            if (
+                foto &&
+                typeof foto ===
+                    "object" &&
+                (
+                    foto.lat == null ||
+                    foto.lng == null ||
+                    foto.carimbada !== true
+                )
+            ) {
+
+                // Se o objeto possui blob, é uma foto
+                // da nova estrutura e precisa ser válida.
+                if (foto.blob) {
+
+                    aviso(
+
+                        "Existe uma fotografia nova sem GPS/carimbo válido."
+
+                    );
+
+                    return;
+
+                }
+
+            }
+
+        }
+
+    }
+
+
+    if (
+        !confirm(
+
+            "Concluir este relatório?\n\n" +
+
+            "Ele continuará armazenado no aparelho " +
+
+            "e será identificado como concluído."
+
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    relatorioAtual.status =
+        "concluido";
+
+
+    relatorioAtual.atualizadoEm =
+        new Date()
+            .toISOString();
+
+
+    await AppVistoriasDB.salvar(
+
+        "relatorios",
+
+        relatorioAtual
+
+    );
+
+
+    await carregarRelatorios();
+
+
+    mostrarTela(
+        "tela-inicio"
+    );
+
 }
 
 
 // ============================================================
-// 18. FECHAR FOTO AMPLIADA
+// 27. VISUALIZAÇÃO SIMPLES
 // ============================================================
+
+async function visualizarRegistro(
+    registro
+) {
+
+    const fotos =
+        Array.isArray(
+            registro.fotos
+        )
+            ? registro.fotos
+            : [];
+
+
+    let texto =
+
+        `${obterNomeTipo(
+            registro.tipo
+        )}\n\n` +
+
+        `${registro.observacao || ""}\n\n` +
+
+        `Fotos: ${fotos.length}`;
+
+
+    aviso(
+        texto
+    );
+
+}
+
+
+// ============================================================
+// 28. UTILIDADES DE FOTOS
+// ============================================================
+
+async function obterBlobFoto(
+    foto
+) {
+
+    if (
+        foto &&
+        typeof foto ===
+            "object" &&
+        foto.blob
+    ) {
+
+        return foto.blob;
+
+    }
+
+
+    if (
+        typeof foto ===
+        "string"
+    ) {
+
+        return dataURLParaBlob(
+            foto
+        );
+
+    }
+
+
+    return null;
+
+}
+
+
+function obterUrlFoto(
+    foto
+) {
+
+    if (
+        foto &&
+        typeof foto ===
+            "object"
+    ) {
+
+        if (
+            foto.thumb
+        ) {
+
+            return URL.createObjectURL(
+                foto.thumb
+            );
+
+        }
+
+
+        if (
+            foto.blob
+        ) {
+
+            return URL.createObjectURL(
+                foto.blob
+            );
+
+        }
+
+    }
+
+
+    if (
+        typeof foto ===
+        "string"
+    ) {
+
+        return foto;
+
+    }
+
+
+    return "";
+
+}
+
+
+function abrirFotoAmpliada(
+    blob
+) {
+
+    Promise
+        .resolve(blob)
+
+        .then(
+            blobResultado => {
+
+                if (
+                    !blobResultado
+                ) {
+
+                    return;
+
+                }
+
+
+                const url =
+
+                    typeof blobResultado ===
+                    "string"
+
+                        ? blobResultado
+
+                        : URL.createObjectURL(
+                            blobResultado
+                        );
+
+
+                el(
+                    "foto-ampliada"
+                ).src =
+                    url;
+
+
+                el(
+                    "modal-foto"
+                )
+                    .classList
+                    .add(
+                        "ativo"
+                    );
+
+
+                el(
+                    "modal-foto"
+                )
+                    .dataset
+                    .url =
+
+                        typeof blobResultado ===
+                        "string"
+
+                            ? ""
+
+                            : url;
+
+            }
+        )
+
+        .catch(
+            erro =>
+                console.error(
+                    erro
+                )
+        );
+
+}
+
 
 function fecharFotoAmpliada() {
 
     const modal =
-        document.getElementById(
-            "modal-foto-ampliada"
+        el(
+            "modal-foto"
         );
 
 
-    const imagem =
-        document.getElementById(
-            "foto-ampliada"
+    const url =
+        modal.dataset.url;
+
+
+    if (url) {
+
+        URL.revokeObjectURL(
+            url
         );
 
-
-    if (imagem) {
-
-        imagem.src =
-            "";
     }
 
 
-    if (modal) {
+    modal.dataset.url =
+        "";
 
-        modal.style.display =
-            "none";
-    }
+
+    el(
+        "foto-ampliada"
+    ).src =
+        "";
+
+
+    modal
+        .classList
+        .remove(
+            "ativo"
+        );
+
 }
 
 
 // ============================================================
-// 19. ADICIONAR FOTOS
+// 29. LIMPAR FORMULÁRIOS
 // ============================================================
 
-function adicionarFotos(arquivos) {
+function limparFormularioRelatorio() {
 
-    Array.from(
-        arquivos
-    ).forEach(
-        arquivo => {
-
-            if (
-                !arquivo.type.startsWith(
-                    "image/"
-                )
-            ) {
-                return;
-            }
+    el("titulo").value =
+        "";
 
 
-            const leitor =
-                new FileReader();
+    el("cidade").value =
+        "";
 
 
-            leitor.onload =
-                function(evento) {
+    el("predio").innerHTML =
+        `<option value="">
+            Selecione primeiro a cidade
+        </option>`;
 
-                    window.fotosTemporarias.push(
-                        evento.target.result
+
+    el("predio").disabled =
+        true;
+
+
+    el("responsavel").value =
+        "";
+
+
+    el("data").value =
+        dataHoje();
+
+}
+
+
+function limparFormularioRegistro() {
+
+    clearTimeout(
+        autosaveTimer
+    );
+
+
+    fotosTemporarias
+        .forEach(
+            foto => {
+
+                if (foto.url) {
+
+                    URL.revokeObjectURL(
+                        foto.url
                     );
 
+                }
 
-                    mostrarMiniaturasFotos();
-                };
+            }
+        );
 
 
-            leitor.readAsDataURL(
-                arquivo
-            );
-        }
-    );
+    fotosTemporarias =
+        [];
+
+
+    registroEmEdicao =
+        null;
+
+
+    tipoRegistroAtual =
+        null;
+
+
+    el("observacao")
+        .value =
+            "";
+
+
+    el("form-registro")
+        .style.display =
+            "none";
+
+
+    el("btn-excluir-registro")
+        .style.display =
+            "none";
+
+
+    el("salvamento-status")
+        .textContent =
+            "";
+
+
+    delete el(
+        "form-registro"
+    ).dataset.rascunhoId;
+
+
+    renderizarFotos();
+
 }
 
 
 // ============================================================
-// 20. GERAÇÃO DO PDF
+// 30. PDF
 // ============================================================
 
 async function gerarPDF() {
 
     if (!relatorioAtual) {
 
-        alert(
+        aviso(
             "Nenhum relatório está aberto."
         );
 
         return;
+
     }
 
 
-    const todos =
-        await AppVistoriasDB.listar(
-            "registros"
+    const registros =
+        await listarRegistrosDoRelatorio(
+
+            relatorioAtual.id
+
         );
 
 
-    const registros =
-        todos
-            .filter(
-                registro =>
-                    registro.relatorioId ===
-                    relatorioAtual.id
-            )
-            .sort(
-                (a, b) =>
-                    a.ordem - b.ordem
-            );
+    if (!registros.length) {
 
-
-    if (
-        registros.length === 0
-    ) {
-
-        alert(
-            "Adicione pelo menos um registro antes de gerar o PDF."
+        aviso(
+            "Adicione pelo menos um registro."
         );
 
         return;
+
     }
 
 
@@ -1377,32 +3774,140 @@ async function gerarPDF() {
 
     if (!janela) {
 
-        alert(
-            "O navegador bloqueou a abertura do PDF. Permita pop-ups para este aplicativo e tente novamente."
+        aviso(
+            "Permita pop-ups para gerar o PDF."
         );
 
         return;
+
+    }
+
+
+    const local = [
+
+        relatorioAtual.cidade,
+
+        relatorioAtual.predio
+
+    ]
+        .filter(Boolean)
+        .join(" - ");
+
+
+    let htmlRegistros =
+        "";
+
+
+    for (
+        let i = 0;
+
+        i < registros.length;
+
+        i++
+    ) {
+
+        const registro =
+            registros[i];
+
+
+        let htmlFotos =
+            "";
+
+
+        for (
+            const foto of
+            registro.fotos ||
+            []
+        ) {
+
+            const blob =
+                await obterBlobFoto(
+                    foto
+                );
+
+
+            if (!blob) {
+
+                continue;
+
+            }
+
+
+            const dataURL =
+                await blobParaDataURL(
+                    blob
+                );
+
+
+            htmlFotos += `
+
+                <div class="foto">
+
+                    <img
+                        src="${dataURL}"
+                    >
+
+                </div>
+
+            `;
+
+        }
+
+
+        htmlRegistros += `
+
+            <section class="registro">
+
+                <div class="cabecalho-registro">
+
+                    ${String(
+                        i + 1
+                    ).padStart(
+                        2,
+                        "0"
+                    )}
+
+                    —
+
+                    ${escaparHTML(
+                        obterNomeTipo(
+                            registro.tipo
+                        )
+                    )}
+
+                </div>
+
+
+                <div class="observacao">
+
+                    ${escaparHTML(
+                        registro.observacao ||
+                        ""
+                    )}
+
+                </div>
+
+
+                <div class="fotos">
+
+                    ${htmlFotos}
+
+                </div>
+
+            </section>
+
+        `;
+
     }
 
 
     const titulo =
         escaparHTML(
+
             relatorioAtual.titulo ||
+
             "Relatório Fotográfico"
-        );
 
-
-    const local =
-        escaparHTML(
-            relatorioAtual.local ||
-            ""
-        );
-
-
-    const responsavel =
-        escaparHTML(
-            relatorioAtual.responsavel ||
-            ""
         );
 
 
@@ -1410,118 +3915,6 @@ async function gerarPDF() {
         formatarData(
             relatorioAtual.data
         );
-
-
-    let htmlRegistros =
-        "";
-
-
-    registros.forEach(
-        (registro, indice) => {
-
-            const tipo =
-                escaparHTML(
-                    obterNomeTipo(
-                        registro.tipo
-                    )
-                );
-
-
-            const observacao =
-                escaparHTML(
-                    registro.observacao ||
-                    "Nenhuma observação informada."
-                );
-
-
-            const fotos =
-                Array.isArray(
-                    registro.fotos
-                )
-                    ? registro.fotos
-                    : [];
-
-
-            let htmlFotos =
-                "";
-
-
-            if (
-                fotos.length > 0
-            ) {
-
-                htmlFotos = `
-                    <div class="fotos">
-                        ${fotos
-                            .map(
-                                (foto, fotoIndice) => `
-                                    <div class="foto">
-                                        <img
-                                            src="${foto}"
-                                            alt="Foto ${fotoIndice + 1}"
-                                        >
-                                    </div>
-                                `
-                            )
-                            .join("")}
-                    </div>
-                `;
-
-            } else {
-
-                htmlFotos = `
-                    <div class="sem-fotos">
-                        Nenhuma foto registrada.
-                    </div>
-                `;
-            }
-
-
-            htmlRegistros += `
-
-                <section class="registro">
-
-                    <div class="registro-cabecalho">
-
-                        <div class="numero">
-                            ${String(
-                                indice + 1
-                            ).padStart(2, "0")}
-                        </div>
-
-                        <div class="tipo">
-                            ${tipo}
-                        </div>
-
-                    </div>
-
-                    <div class="observacao-titulo">
-                        Observação
-                    </div>
-
-                    <div class="observacao">
-                        ${observacao}
-                    </div>
-
-                    ${htmlFotos}
-
-                </section>
-            `;
-        }
-    );
-
-
-    const dataArquivo =
-        relatorioAtual.data ||
-        dataHoje();
-
-
-    const nomeArquivo =
-        `Relatorio_Fotografico_${relatorioAtual.titulo || "Relatorio"}_${dataArquivo}`
-            .replace(
-                /[\\/:*?"<>|]/g,
-                "_"
-            );
 
 
     janela.document.write(`
@@ -1538,225 +3931,187 @@ async function gerarPDF() {
                 ${titulo}
             </title>
 
+
             <style>
 
                 @page {
+
                     size: A4;
-                    margin: 15mm;
+
+                    margin: 12mm;
+
                 }
 
-                * {
-                    box-sizing: border-box;
-                }
 
                 body {
+
                     font-family:
                         Arial,
-                        Helvetica,
                         sans-serif;
 
-                    margin: 0;
+                    color:
+                        #222;
 
-                    padding: 0;
+                    font-size:
+                        12px;
 
-                    color: #222;
+                    margin:
+                        0;
 
-                    background: white;
-
-                    font-size: 12px;
                 }
 
-                .pagina {
-
-                    width: 100%;
-
-                    margin: 0 auto;
-                }
 
                 .cabecalho {
 
                     border-bottom:
                         2px solid #222;
 
-                    padding-bottom: 12px;
+                    padding-bottom:
+                        12px;
 
-                    margin-bottom: 18px;
+                    margin-bottom:
+                        16px;
+
                 }
+
 
                 .titulo {
 
-                    font-size: 22px;
+                    font-size:
+                        22px;
 
-                    font-weight: bold;
+                    font-weight:
+                        bold;
 
-                    margin-bottom: 12px;
+                    margin-bottom:
+                        10px;
 
-                    text-transform:
-                        uppercase;
                 }
 
-                .informacoes {
 
-                    display: grid;
+                .dados {
+
+                    display:
+                        grid;
 
                     grid-template-columns:
                         1fr 1fr;
 
-                    gap: 6px 20px;
+                    gap:
+                        5px 18px;
 
-                    font-size: 12px;
                 }
 
-                .informacao {
-
-                    padding: 3px 0;
-                }
-
-                .rotulo {
-
-                    font-weight: bold;
-                }
 
                 .registro {
 
                     border:
-                        1px solid #bbb;
+                        1px solid #aaa;
 
-                    border-radius: 6px;
+                    border-radius:
+                        6px;
 
-                    padding: 12px;
+                    padding:
+                        10px;
 
-                    margin-bottom: 16px;
+                    margin-bottom:
+                        14px;
 
                     page-break-inside:
                         avoid;
+
                 }
 
-                .registro-cabecalho {
 
-                    display: flex;
+                .cabecalho-registro {
 
-                    align-items: center;
-
-                    gap: 10px;
-
-                    margin-bottom: 12px;
+                    font-weight:
+                        bold;
 
                     border-bottom:
                         1px solid #ddd;
 
-                    padding-bottom: 8px;
+                    padding-bottom:
+                        7px;
+
+                    margin-bottom:
+                        8px;
+
                 }
 
-                .numero {
-
-                    font-size: 18px;
-
-                    font-weight: bold;
-
-                    min-width: 32px;
-                }
-
-                .tipo {
-
-                    font-size: 14px;
-
-                    font-weight: bold;
-                }
-
-                .observacao-titulo {
-
-                    font-weight: bold;
-
-                    margin-bottom: 4px;
-                }
 
                 .observacao {
 
-                    white-space: pre-wrap;
+                    white-space:
+                        pre-wrap;
 
-                    line-height: 1.45;
+                    line-height:
+                        1.45;
 
-                    margin-bottom: 12px;
+                    margin-bottom:
+                        10px;
+
                 }
+
 
                 .fotos {
 
-                    display: grid;
+                    display:
+                        grid;
 
                     grid-template-columns:
                         1fr 1fr;
 
-                    gap: 10px;
+                    gap:
+                        8px;
+
                 }
+
 
                 .foto {
 
-                    width: 100%;
-
-                    height: 180px;
-
-                    display: flex;
-
-                    align-items: center;
-
-                    justify-content: center;
-
-                    overflow: hidden;
+                    height:
+                        180px;
 
                     border:
                         1px solid #ddd;
 
-                    border-radius: 4px;
+                    overflow:
+                        hidden;
 
-                    background: #f5f5f5;
                 }
+
 
                 .foto img {
 
-                    width: 100%;
+                    width:
+                        100%;
 
-                    height: 100%;
+                    height:
+                        100%;
 
-                    object-fit: contain;
+                    object-fit:
+                        contain;
+
                 }
 
-                .sem-fotos {
 
-                    font-style: italic;
+                footer {
 
-                    color: #666;
-                }
-
-                .rodape {
-
-                    margin-top: 20px;
-
-                    padding-top: 8px;
+                    margin-top:
+                        20px;
 
                     border-top:
                         1px solid #ccc;
 
-                    text-align: center;
+                    padding-top:
+                        8px;
 
-                    font-size: 10px;
+                    text-align:
+                        center;
 
-                    color: #666;
-                }
-
-                @media print {
-
-                    body {
-                        -webkit-print-color-adjust:
-                            exact;
-
-                        print-color-adjust:
-                            exact;
-                    }
-
-                    .nao-imprimir {
-                        display: none;
-                    }
+                    font-size:
+                        10px;
 
                 }
 
@@ -1764,66 +4119,84 @@ async function gerarPDF() {
 
         </head>
 
+
         <body>
 
-            <div class="pagina">
 
-                <header class="cabecalho">
+            <header class="cabecalho">
 
-                    <div class="titulo">
-                        ${titulo}
-                    </div>
+                <div class="titulo">
 
-                    <div class="informacoes">
+                    ${titulo}
 
-                        <div class="informacao">
-                            <span class="rotulo">
-                                Local:
-                            </span>
-                            ${local}
-                        </div>
+                </div>
 
-                        <div class="informacao">
-                            <span class="rotulo">
-                                Data:
-                            </span>
-                            ${data}
-                        </div>
 
-                        <div class="informacao">
-                            <span class="rotulo">
-                                Responsável:
-                            </span>
-                            ${responsavel}
-                        </div>
+                <div class="dados">
 
-                        <div class="informacao">
-                            <span class="rotulo">
-                                Registros:
-                            </span>
-                            ${registros.length}
-                        </div>
+                    <div>
+
+                        <strong>
+                            Local:
+                        </strong>
+
+                        ${escaparHTML(
+                            local
+                        )}
 
                     </div>
 
-                </header>
+
+                    <div>
+
+                        <strong>
+                            Data:
+                        </strong>
+
+                        ${data}
+
+                    </div>
 
 
-                <main>
+                    <div>
 
-                    ${htmlRegistros}
+                        <strong>
+                            Responsável:
+                        </strong>
 
-                </main>
+                        ${escaparHTML(
+                            relatorioAtual
+                                .responsavel ||
+                            ""
+                        )}
+
+                    </div>
 
 
-                <footer class="rodape">
+                    <div>
 
-                    Relatório Fotográfico —
-                    ${data}
+                        <strong>
+                            Registros:
+                        </strong>
 
-                </footer>
+                        ${registros.length}
 
-            </div>
+                    </div>
+
+                </div>
+
+            </header>
+
+
+            ${htmlRegistros}
+
+
+            <footer>
+
+                Relatório Fotográfico —
+                ${data}
+
+            </footer>
 
 
             <script>
@@ -1832,174 +4205,185 @@ async function gerarPDF() {
                     function() {
 
                         setTimeout(
+
                             function() {
 
                                 window.print();
 
                             },
+
                             500
+
                         );
 
                     };
 
             <\/script>
 
+
         </body>
 
         </html>
+
     `);
 
 
     janela.document.close();
 
+}
 
-    console.log(
-        "PDF preparado:",
-        nomeArquivo + ".pdf"
+
+function blobParaDataURL(
+    blob
+) {
+
+    return new Promise(
+        (resolve, reject) => {
+
+            const leitor =
+                new FileReader();
+
+
+            leitor.onload =
+                () =>
+                    resolve(
+                        leitor.result
+                    );
+
+
+            leitor.onerror =
+                () =>
+                    reject(
+                        leitor.error
+                    );
+
+
+            leitor.readAsDataURL(
+                blob
+            );
+
+        }
     );
+
 }
 
 
 // ============================================================
-// 21. EVENTOS DA INTERFACE
+// 31. EVENTOS
 // ============================================================
 
 document.addEventListener(
+
     "DOMContentLoaded",
+
     async () => {
 
         console.log(
-            "Interface V1 carregada."
+
+            `${APP_CONFIG.nome} - ` +
+            `${APP_CONFIG.versao}`
+
         );
 
 
-        document.getElementById(
-            "data"
-        ).value =
+        el("data").value =
             dataHoje();
+
+
+        carregarCatalogoLocais();
+
+
+        el("cidade")
+            .addEventListener(
+                "change",
+                atualizarPredios
+            );
 
 
         await carregarRelatorios();
 
 
         // ----------------------------------------------------
-        // NOVO RELATÓRIO
+        // Novo relatório
         // ----------------------------------------------------
 
-        document.getElementById(
-            "btn-novo-relatorio"
-        ).addEventListener(
-            "click",
-            () => {
+        el("btn-novo-relatorio")
+            .addEventListener(
+                "click",
+                () => {
 
-                limparFormularioRelatorio();
+                    limparFormularioRelatorio();
 
-                mostrarTela(
-                    "tela-novo"
-                );
-            }
-        );
+                    mostrarTela(
+                        "tela-novo"
+                    );
 
-
-        // ----------------------------------------------------
-        // VOLTAR PARA INÍCIO
-        // ----------------------------------------------------
-
-        document.getElementById(
-            "btn-voltar-inicio"
-        ).addEventListener(
-            "click",
-            () => {
-
-                carregarRelatorios();
-
-                mostrarTela(
-                    "tela-inicio"
-                );
-            }
-        );
+                }
+            );
 
 
         // ----------------------------------------------------
-        // CRIAR RELATÓRIO
+        // Voltar início
         // ----------------------------------------------------
 
-        document.getElementById(
-            "btn-iniciar-relatorio"
-        ).addEventListener(
-            "click",
-            criarRelatorio
-        );
+        el("btn-voltar-inicio")
+            .addEventListener(
+                "click",
+                async () => {
 
+                    await carregarRelatorios();
 
-        // ----------------------------------------------------
-        // VOLTAR DOS RELATÓRIOS
-        // ----------------------------------------------------
+                    mostrarTela(
+                        "tela-inicio"
+                    );
 
-        document.getElementById(
-            "btn-voltar-relatorios"
-        ).addEventListener(
-            "click",
-            () => {
-
-                carregarRelatorios();
-
-                mostrarTela(
-                    "tela-inicio"
-                );
-            }
-        );
+                }
+            );
 
 
         // ----------------------------------------------------
-        // NOVO REGISTRO
+        // Criar relatório
         // ----------------------------------------------------
 
-        document.getElementById(
-            "btn-novo-registro"
-        ).addEventListener(
-            "click",
-            () => {
-
-                tipoRegistroAtual =
-                    null;
-
-                window.registroEmEdicao =
-                    null;
-
-                window.fotosTemporarias =
-                    [];
-
-                mostrarMiniaturasFotos();
-
-
-                document.getElementById(
-                    "btn-excluir-registro-edicao"
-                ).style.display =
-                    "none";
-
-
-                document.getElementById(
-                    "form-registro"
-                ).style.display =
-                    "none";
-
-
-                document.getElementById(
-                    "observacao"
-                ).value =
-                    "";
-
-
-                mostrarTela(
-                    "tela-registro"
-                );
-            }
-        );
+        el("btn-iniciar-relatorio")
+            .addEventListener(
+                "click",
+                criarRelatorio
+            );
 
 
         // ----------------------------------------------------
-        // ESCOLHA DO TIPO
+        // Voltar relatório
+        // ----------------------------------------------------
+
+        el("btn-voltar-relatorios")
+            .addEventListener(
+                "click",
+                async () => {
+
+                    await carregarRelatorios();
+
+                    mostrarTela(
+                        "tela-inicio"
+                    );
+
+                }
+            );
+
+
+        // ----------------------------------------------------
+        // Novo registro
+        // ----------------------------------------------------
+
+        el("btn-novo-registro")
+            .addEventListener(
+                "click",
+                novoRegistro
+            );
+
+
+        // ----------------------------------------------------
+        // Tipos
         // ----------------------------------------------------
 
         document
@@ -2016,277 +4400,298 @@ document.addEventListener(
                                 botao.dataset.tipo
                             )
                     );
+
                 }
             );
 
 
         // ----------------------------------------------------
-        // SALVAR REGISTRO
+        // Salvar registro
         // ----------------------------------------------------
 
-        document.getElementById(
-            "btn-salvar-registro"
-        ).addEventListener(
-            "click",
-            salvarNovoRegistro
-        );
+        el("btn-salvar-registro")
+            .addEventListener(
+                "click",
+                salvarRegistro
+            );
 
 
         // ----------------------------------------------------
-        // VOLTAR DO REGISTRO
+        // Excluir
         // ----------------------------------------------------
 
-        document.getElementById(
-            "btn-voltar-relatorio"
-        ).addEventListener(
-            "click",
-            () => {
+        el("btn-excluir-registro")
+            .addEventListener(
+                "click",
+                excluirRegistro
+            );
 
-                mostrarTela(
-                    "tela-relatorio"
-                );
+
+        // ----------------------------------------------------
+        // Voltar registro
+        // ----------------------------------------------------
+
+        el("btn-voltar-relatorio")
+            .addEventListener(
+                "click",
+                async () => {
+
+                    if (
+                        relatorioAtual
+                    ) {
+
+                        await mostrarRelatorio(
+                            relatorioAtual
+                        );
+
+                    }
+
+
+                    mostrarTela(
+                        "tela-relatorio"
+                    );
+
+                }
+            );
+
+
+        // ----------------------------------------------------
+        // Revisão
+        // ----------------------------------------------------
+
+        el("btn-revisar")
+            .addEventListener(
+                "click",
+                abrirRevisao
+            );
+
+
+        // ----------------------------------------------------
+        // Voltar revisão
+        // ----------------------------------------------------
+
+        el("btn-voltar-revisao")
+            .addEventListener(
+                "click",
+                async () => {
+
+                    if (
+                        relatorioAtual
+                    ) {
+
+                        await mostrarRelatorio(
+                            relatorioAtual
+                        );
+
+                    }
+
+
+                    mostrarTela(
+                        "tela-relatorio"
+                    );
+
+                }
+            );
+
+
+        // ----------------------------------------------------
+        // Concluir
+        // ----------------------------------------------------
+
+        el("btn-concluir")
+            .addEventListener(
+                "click",
+                concluirRelatorio
+            );
+
+
+        // ----------------------------------------------------
+        // Câmera
+        // ----------------------------------------------------
+
+        el("btn-tirar-foto")
+            .addEventListener(
+                "click",
+                () =>
+                    el(
+                        "input-camera"
+                    ).click()
+            );
+
+
+        // ----------------------------------------------------
+        // Galeria
+        // ----------------------------------------------------
+
+        el("btn-escolher-foto")
+            .addEventListener(
+                "click",
+                () =>
+                    el(
+                        "input-galeria"
+                    ).click()
+            );
+
+
+        // ----------------------------------------------------
+        // Foto câmera
+        // ----------------------------------------------------
+
+        el("input-camera")
+            .addEventListener(
+                "change",
+                async evento => {
+
+                    try {
+
+                        await adicionarArquivos(
+    evento.target.files,
+    "camera"
+);
+
+                    } finally {
+
+                        evento.target.value =
+                            "";
+
+                    }
+
+                }
+            );
+
+
+        // ----------------------------------------------------
+        // Foto galeria
+        // ----------------------------------------------------
+
+        el("input-galeria")
+            .addEventListener(
+                "change",
+                async evento => {
+
+                    try {
+
+                        await adicionarArquivos(
+    evento.target.files,
+    "galeria"
+);
+
+                    } finally {
+
+                        evento.target.value =
+                            "";
+
+                    }
+
+                }
+            );
+
+
+        // ----------------------------------------------------
+        // Observação
+        // ----------------------------------------------------
+
+        el("observacao")
+            .addEventListener(
+                "input",
+                agendarAutoSalvar
+            );
+
+
+        // ----------------------------------------------------
+        // Modal foto
+        // ----------------------------------------------------
+
+        el("modal-foto")
+            .addEventListener(
+                "click",
+                evento => {
+
+                    if (
+                        evento.target ===
+                        el("modal-foto")
+                    ) {
+
+                        fecharFotoAmpliada();
+
+                    }
+
+                }
+            );
+
+
+        // ----------------------------------------------------
+        // ESC
+        // ----------------------------------------------------
+
+        document.addEventListener(
+            "keydown",
+            evento => {
+
+                if (
+                    evento.key ===
+                    "Escape"
+                ) {
+
+                    fecharFotoAmpliada();
+
+                }
+
             }
         );
 
 
         // ----------------------------------------------------
-        // GERAR PDF
+        // Service Worker
         // ----------------------------------------------------
 
-        document.getElementById(
-            "btn-gerar-pdf"
-        ).addEventListener(
-            "click",
-            gerarPDF
-        );
+        if (
+            "serviceWorker" in
+            navigator
+        ) {
+
+            window.addEventListener(
+                "load",
+                () => {
+
+                    navigator.serviceWorker
+                        .register(
+                            "./service-worker.js"
+                        )
+                        .catch(
+                            erro =>
+                                console.error(
+                                    "Service Worker:",
+                                    erro
+                                )
+                        );
+
+                }
+            );
+
+        }
 
     }
+
 );
 
 
 // ============================================================
-// 22. EVENTOS DO MODAL DE REGISTRO
-// ============================================================
-
-const btnFecharModalRegistro =
-    document.getElementById(
-        "btn-fechar-modal-registro"
-    );
-
-
-const btnFecharModalRegistroRodape =
-    document.getElementById(
-        "btn-fechar-modal-registro-rodape"
-    );
-
-
-if (
-    btnFecharModalRegistro
-) {
-
-    btnFecharModalRegistro.addEventListener(
-        "click",
-        fecharVisualizacaoRegistro
-    );
-}
-
-
-if (
-    btnFecharModalRegistroRodape
-) {
-
-    btnFecharModalRegistroRodape.addEventListener(
-        "click",
-        fecharVisualizacaoRegistro
-    );
-}
-
-
-// ============================================================
-// 23. BOTÃO EDITAR
-// ============================================================
-
-const btnEditarRegistro =
-    document.getElementById(
-        "btn-editar-registro"
-    );
-
-
-if (
-    btnEditarRegistro
-) {
-
-    btnEditarRegistro.addEventListener(
-        "click",
-        editarRegistro
-    );
-}
-
-
-// ============================================================
-// 24. BOTÃO EXCLUIR
-// ============================================================
-
-const btnExcluirRegistroEdicao =
-    document.getElementById(
-        "btn-excluir-registro-edicao"
-    );
-
-
-if (
-    btnExcluirRegistroEdicao
-) {
-
-    btnExcluirRegistroEdicao.addEventListener(
-        "click",
-        excluirRegistroAtual
-    );
-}
-
-
-// ============================================================
-// 25. EVENTOS DA FOTO AMPLIADA
-// ============================================================
-
-const btnFecharFotoAmpliada =
-    document.getElementById(
-        "btn-fechar-foto-ampliada"
-    );
-
-
-if (
-    btnFecharFotoAmpliada
-) {
-
-    btnFecharFotoAmpliada.addEventListener(
-        "click",
-        fecharFotoAmpliada
-    );
-}
-
-
-const modalFotoAmpliada =
-    document.getElementById(
-        "modal-foto-ampliada"
-    );
-
-
-if (
-    modalFotoAmpliada
-) {
-
-    modalFotoAmpliada.addEventListener(
-        "click",
-        evento => {
-
-            if (
-                evento.target ===
-                modalFotoAmpliada
-            ) {
-
-                fecharFotoAmpliada();
-            }
-        }
-    );
-}
-
-
-// ============================================================
-// 26. TECLA ESC
+// 32. BOTÃO PDF
 // ============================================================
 
 document.addEventListener(
-    "keydown",
-    evento => {
 
-        if (
-            evento.key ===
-            "Escape"
-        ) {
+    "DOMContentLoaded",
 
-            fecharFotoAmpliada();
-        }
+    () => {
+
+        el("btn-gerar-pdf")
+            .addEventListener(
+                "click",
+                gerarPDF
+            );
+
     }
+
 );
-
-
-// ============================================================
-// 27. BOTÃO TIRAR FOTO
-// ============================================================
-
-if (
-    btnTirarFoto
-) {
-
-    btnTirarFoto.addEventListener(
-        "click",
-        () => {
-
-            inputCamera.click();
-        }
-    );
-}
-
-
-// ============================================================
-// 28. BOTÃO GALERIA
-// ============================================================
-
-if (
-    btnEscolherFoto
-) {
-
-    btnEscolherFoto.addEventListener(
-        "click",
-        () => {
-
-            inputGaleria.click();
-        }
-    );
-}
-
-
-// ============================================================
-// 29. FOTO DA CÂMERA
-// ============================================================
-
-if (
-    inputCamera
-) {
-
-    inputCamera.addEventListener(
-        "change",
-        evento => {
-
-            adicionarFotos(
-                evento.target.files
-            );
-
-            inputCamera.value =
-                "";
-        }
-    );
-}
-
-
-// ============================================================
-// 30. FOTO DA GALERIA
-// ============================================================
-
-if (
-    inputGaleria
-) {
-
-    inputGaleria.addEventListener(
-        "change",
-        evento => {
-
-            adicionarFotos(
-                evento.target.files
-            );
-
-            inputGaleria.value =
-                "";
-        }
-    );
-}
