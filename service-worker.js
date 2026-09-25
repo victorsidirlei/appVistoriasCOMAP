@@ -13,14 +13,14 @@
 // O cache é versionado para permitir atualizações controladas.
 // ============================================================
 
-const CACHE = "vistorias-v16";
+const CACHE = "vistorias-v17";
 
 const SHELL = [
     "./",
     "./index.html",
     "./manifest.json",
     "./js/db.js",
-    "./js/app.js",
+    "./js/app.js?v=1.1.1",
     "./icon-tjmg-192.png",
     "./icon-tjmg-512.png"
 ];

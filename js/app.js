@@ -785,9 +785,101 @@ async function mostrarRelatorio(
         `;
 
 
+    // --------------------------------------------------------
+    // Ações do relatório
+    // --------------------------------------------------------
+
+    const btnNovoRegistro =
+        el("btn-novo-registro");
+
+    const btnRevisar =
+        el("btn-revisar");
+
+
+    if (concluido) {
+
+        btnNovoRegistro.style.display =
+            "none";
+
+        btnRevisar.style.display =
+            "none";
+
+    } else {
+
+        btnNovoRegistro.style.display =
+            "block";
+
+        btnRevisar.style.display =
+            "block";
+
+    }
+
+
+    // --------------------------------------------------------
+    // Carrega os registros.
+    //
+    // A função carregarRegistros também recebe
+    // o estado atual do relatório para controlar
+    // as ações de cada registro.
+    // --------------------------------------------------------
+
     await carregarRegistros(
         relatorio.id
     );
+
+
+    // --------------------------------------------------------
+    // Retificação
+    //
+    // O botão é criado dinamicamente na área
+    // inferior da tela do relatório.
+    // --------------------------------------------------------
+
+    let btnRetificar =
+        el("btn-retificar-relatorio");
+
+
+    if (!btnRetificar) {
+
+        btnRetificar =
+            document.createElement(
+                "button"
+            );
+
+        btnRetificar.id =
+            "btn-retificar-relatorio";
+
+        btnRetificar.className =
+            "botao botao-secundario";
+
+        btnRetificar.textContent =
+            "↩ Retificar relatório";
+
+
+        const btnGerarPDF =
+            el("btn-gerar-pdf");
+
+
+        btnGerarPDF
+            .parentElement
+            .insertBefore(
+                btnRetificar,
+                btnGerarPDF
+            );
+
+
+        btnRetificar.addEventListener(
+            "click",
+            retificarRelatorio
+        );
+
+    }
+
+
+    btnRetificar.style.display =
+        concluido
+            ? "block"
+            : "none";
 
 }
 
@@ -1154,7 +1246,20 @@ function classeTipo(tipo) {
 // ============================================================
 
 function novoRegistro() {
+    if (
+        relatorioAtual &&
+        relatorioAtual.status ===
+            "concluido"
+    ) {
 
+        aviso(
+            "Este relatório está concluído. " +
+            "Use \"Retificar relatório\" para realizar alterações."
+        );
+
+        return;
+
+    }
     registroEmEdicao =
         null;
 
@@ -1241,7 +1346,20 @@ function selecionarTipo(tipo) {
 async function prepararEdicao(
     registro
 ) {
+    if (
+        relatorioAtual &&
+        relatorioAtual.status ===
+            "concluido"
+    ) {
 
+        aviso(
+            "Este relatório está concluído. " +
+            "Use \"Retificar relatório\" para realizar alterações."
+        );
+
+        return;
+
+    }
     registroEmEdicao =
         registro;
 
@@ -1350,6 +1468,10 @@ async function prepararFotosParaEdicao(
 
                 capturadaEm:
                     foto.capturadaEm ||
+                    null,
+
+                origem:
+                    foto.origem ||
                     null,
 
                 carimbada:
@@ -2434,6 +2556,9 @@ async function salvarRegistro() {
                     capturadaEm:
                         foto.capturadaEm,
 
+                    origem:
+                        foto.origem,
+
                     carimbada:
                         foto.carimbada
 
@@ -3325,20 +3450,39 @@ async function concluirRelatorio() {
                 foto &&
                 typeof foto ===
                     "object" &&
-                (
+                foto.blob
+            ) {
+
+                // ------------------------------------------------
+                // Fotos da galeria / armazenamento:
+                // GPS e carimbo não são obrigatórios.
+                // ------------------------------------------------
+
+                if (
+                    foto.origem ===
+                    "Armazenamento"
+                ) {
+
+                    continue;
+
+                }
+
+
+                // ------------------------------------------------
+                // Fotos da câmera:
+                // GPS + carimbo são obrigatórios.
+                // ------------------------------------------------
+
+                if (
                     foto.lat == null ||
                     foto.lng == null ||
                     foto.carimbada !== true
-                )
-            ) {
-
-                // Se o objeto possui blob, é uma foto
-                // da nova estrutura e precisa ser válida.
-                if (foto.blob) {
+                ) {
 
                     aviso(
 
-                        "Existe uma fotografia nova sem GPS/carimbo válido."
+                        "Existe uma fotografia nova da câmera " +
+                        "sem GPS/carimbo válido."
 
                     );
 
@@ -3396,7 +3540,98 @@ async function concluirRelatorio() {
     );
 
 }
+// ============================================================
+// 26.1 RETIFICAR RELATÓRIO
+// ============================================================
 
+async function retificarRelatorio() {
+
+    if (!relatorioAtual) {
+
+        return;
+
+    }
+
+
+    if (
+        relatorioAtual.status !==
+        "concluido"
+    ) {
+
+        aviso(
+            "Este relatório já está em andamento."
+        );
+
+        return;
+
+    }
+
+
+    const confirmar =
+        confirm(
+
+            "Retificar este relatório?\n\n" +
+
+            "O relatório voltará para " +
+            "\"Em andamento\" e poderá ser editado novamente.\n\n" +
+
+            "Os registros, fotos, observações e " +
+            "ordem atual serão preservados."
+
+        );
+
+
+    if (!confirmar) {
+
+        return;
+
+    }
+
+
+    relatorioAtual.status =
+        "em_andamento";
+
+
+    relatorioAtual.versao =
+        (
+            Number(
+                relatorioAtual.versao ||
+                1
+            ) + 1
+        );
+
+
+    relatorioAtual.retificadoEm =
+        new Date()
+            .toISOString();
+
+
+    relatorioAtual.atualizadoEm =
+        new Date()
+            .toISOString();
+
+
+    await AppVistoriasDB.salvar(
+
+        "relatorios",
+
+        relatorioAtual
+
+    );
+
+
+    await mostrarRelatorio(
+
+        relatorioAtual
+
+    );
+
+
+    mostrarTela(
+        "tela-relatorio"
+    );
+
+}
 
 // ============================================================
 // 27. VISUALIZAÇÃO SIMPLES
