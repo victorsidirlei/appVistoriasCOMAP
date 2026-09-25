@@ -13,7 +13,7 @@
 // O cache é versionado para permitir atualizações controladas.
 // ============================================================
 
-const CACHE = "vistorias-v17";
+const CACHE = "vistorias-v18";
 
 const SHELL = [
     "./",

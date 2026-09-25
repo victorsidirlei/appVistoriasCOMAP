@@ -4889,17 +4889,27 @@ document.addEventListener(
                 "load",
                 () => {
 
-                    navigator.serviceWorker
-                        .register(
-                            "./service-worker.js"
+            navigator.serviceWorker
+                .register(
+                    "./service-worker.js",
+                    {
+                        updateViaCache: "none"
+                    }
+                )
+                .then(
+                    registro => {
+
+                        registro.update();
+
+                    }
+                )
+                .catch(
+                    erro =>
+                        console.error(
+                            "Service Worker:",
+                            erro
                         )
-                        .catch(
-                            erro =>
-                                console.error(
-                                    "Service Worker:",
-                                    erro
-                                )
-                        );
+                );
 
                 }
             );
